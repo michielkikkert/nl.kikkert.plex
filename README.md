@@ -4,11 +4,11 @@ This is the Plex Remote control app for the Homey device. There is still a lot t
 
 #A few notes
 
-- Please note that if you run this on a public virtual homey, other people can technically get your plex.tv security token or give voice commands to your PMS :-) If you want to test it on a public virtual homey, please don't forget to ctrl-c the athom project --run when you're done. This unloads the Plex app automically. Before you do so, make sure you hit the "reset settings" button on the Homey Plex App - settings page.
+- Please note that if you run this on a public virtual homey, other people can technically get your plex.tv security token or give voice commands to your PMS, play at your own risk :-) If you want to test it on a public virtual homey, please don't forget to ctrl-c the athom project --run when you're done. This unloads the Plex app automically. Before you do so, make sure you hit the "reset settings" button on the Homey Plex App - settings page.
 
 - The settings page is functional, but needs styling and some more fancy features
 
-- The Homey plex app main trigger is "watch". Thid will kick of the main speech logic. 
+- The Homey plex app main trigger is "watch". This will kick of the main speech logic. To see more commands, check the app.json file.
 
 - For now, the application only supports Movies and Shows (episodes).
 
