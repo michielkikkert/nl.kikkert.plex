@@ -1,0 +1,213 @@
+{
+    "id": "nl.kikkert.plex",
+    "version": "1.0.0",
+    "compatibility": "0.x || 1.x",
+    "name": {
+        "en": "Homey plex app",
+        "nl": "Homey plex app"
+    },
+    "description": {
+        "en": "Control a plex media server via Homey",
+        "nl": "Bestuur plex media server met je homey"
+    },
+    "author": {
+        "name": "Michiel Kikkert",
+        "email": "michiel@kikkert.nl"
+    },
+    "dependencies": {
+        "q": "^1.2.0",
+        "plex-api": "^3.1.2",
+        "plex-api-credentials": "^2.0.0",
+        "xml2js": "^0.4.10",
+        "lunr": "^0.5.12",
+        "object-merge" : "^2.5.1"
+    },
+    "permissions": [
+        "homey:manager:speech-output",
+        "homey:manager:speech-input",
+        "homey:manager:ledring"
+    ],
+    "speech": [
+        {
+            "id": "app|plex",
+            "importance": 1,
+            "triggers": {
+                "en": [
+                    "plex"
+                ],
+                "nl": [
+                    "plex"
+                ]
+            }
+        },
+        {
+            "id": "command|watch",
+            "importance": 1,
+            "triggers": {
+                "en": [
+                    "watch",
+                    "play",
+                    "watch a movie",
+                    "watch a series"
+                ],
+                "nl": [
+                    "kijken",
+                    "film kijken",
+                    "serie kijken"
+                ]
+            }
+        },
+        {
+            "id": "command|watchnextepisode",
+            "importance": 0.8,
+            "triggers": {
+                "en": [
+                    "next episode"
+                ],
+                "nl": [
+                    "volgende aflevering"
+                ]
+            }
+        },
+        {
+            "id": "command|latest",
+            "importance": 0.1,
+            "triggers": {
+                "en": [
+                    "latest",
+                    "newest"
+                ],
+                "nl": [
+                    "laatste",
+                    "nieuwste"
+                ]
+            }
+        },
+        {
+            "id": "command|first",
+            "importance": 0.1,
+            "triggers": {
+                "en": [
+                    "first",
+                    "oldest"
+                ],
+                "nl": [
+                    "eerste",
+                    "oudste"
+                ]
+            }
+        },
+
+        {
+            "id": "command|random",
+            "importance": 0.1,
+            "triggers": {
+                "en": [
+                    "random"
+                ],
+                "nl": [
+                    "willekeurige"
+                ]
+            }
+        },
+		{
+            "id": "command|refresh",
+            "importance": 0.8,
+            "triggers": {
+                "en": [
+                    "media refresh",
+                    "refresh media"
+                ],
+                "nl": [
+                    "media verversen"
+                ]
+            }
+        },
+        {
+            "id": "command|pause",
+            "importance": 0.3,
+            "triggers": {
+                "en": [
+                    "movie pause"
+                ],
+                "nl": [
+                    "film pauzeer"
+                ]
+            }
+        },
+        {
+            "id": "command|continue",
+            "importance": 0.3,
+            "triggers": {
+                "en": [
+                    "movie continue",
+                    "movie play"
+                ],
+                "nl": [
+                    "film verder",
+                    "film ga verder"
+                ]
+            }
+        },
+        {
+            "id": "command|stop",
+            "importance": 0.3,
+            "triggers": {
+                "en": [
+                    "movie stop",
+                    "moviestop"
+                ],
+                "nl": [
+                    "movie stop"
+                ]
+            }
+        },
+
+		{
+            "id": "command|currentlyplaying",
+            "importance": 0.8,
+            "triggers": {
+                "en": [
+                    "what is currently playing",
+                    "what am I currently watching"
+                ],
+                "nl": [
+                    "woar kiek ik noar"
+                ]
+            }
+        },
+		{
+            "id": "type|movie",
+            "importance": 0.6,
+            "triggers": {
+                "en": [
+                    "movie",
+                    "flick"
+                ],
+                "nl": [
+                    "film",
+                    "filmpje"
+                ]
+            }    
+        },
+        {
+            "id": "type|episode",
+            "importance": 0.6,
+            "triggers": {
+                "en": [
+                    "show",
+                    "shows",
+                    "episode",
+                    "episodes",
+                    "serie",
+                    "series"
+                ],
+                "nl": [
+                    "episode",
+                    "serie",
+                    "aflevering"
+                ]
+            }
+        }
+    ]
+}
