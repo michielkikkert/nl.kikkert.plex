@@ -28,4 +28,4 @@ This is the Plex Remote control app for the Homey device. There is still a lot t
 There is quite some logic to get to the media item you want to watch. Please keep an eye on the speech-output page, because the application can ask for additional questions (you'll have a few seconds to provide an answer).
 
 The only supported language for now is English (although some dutch commands might work). If nothing works, make sure to switch the virtual homey to english :-)
-Feel free to shoot in issues or contact me via the Athom forum (https://forum.athom.com/categories/developers - MikeOne)
+Feel free to shoot in issues or contact me via the Athom forum (https://forum.athom.com/discussion/366/homey-plex-application-main-discussion-thread#latest - MikeOne)
