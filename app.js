@@ -284,7 +284,24 @@ self.resetSettings = function(){
 
 	for( var key in Homey.settings ) { delete Homey.settings[ key ] }
 
-	Homey.settings = defaultPlexSettings;
+	Homey.settings.hasSetup = defaultPlexSettings.hasSetup;
+	Homey.settings.plexTv = {
+			"username"	: null,
+			"password"	: null,
+			"token"		: null,
+			"hostname"	: constants.plexTvHostname,
+			"port"		: constants.plexTvPort
+	}
+	Homey.settings.servers = [];
+	Homey.settings.players = [];
+	Homey.settings.selected = {
+		"server"	: {
+			"hostname" : false
+		},
+		"player"	: {
+			"hostname" : false
+		}
+	}
 }
 
 self.getPlexServers = function(callback){
