@@ -35,21 +35,57 @@
 
 		.controller('SettingsCtrl', ['$scope', '$rootScope', '$timeout', '$location', function( $scope, $rootScope, $timeout, $location) {
 
-			$scope.settings = Homey.settings;
-			$scope.hasToken = ($scope.settings.plexTv.token) ? true : false;
-		
-
 			$scope.pinSuccess = false;
 			$scope.pinResponse = null;
 			$scope.pinId = null;
 			$scope.pinPending = false;
 			$scope.checkTimer = null;
+			$scope.hasToken = false;
+			$scope.settings = null;
 
 
-			if($scope.hasToken){
-				console.log("hasToken", Homey.settings.plexTv.token);
-				$scope.pinSuccess = true;
+			$scope.getSettings = function(callback){
+
+				$timeout(function(){
+
+					Homey.api( 'GET', '/getSettings', function( err, result ){
+					    if( err ) {
+					    	$scope.error = "Could not get settings from server";
+					    	//return console.error( err );	
+					    } 
+
+					    if(typeof callback === 'function'){
+
+					    	callback(result);
+					    
+					    }else {
+					    	
+					    	$scope.settings = result;
+					   		$scope.$apply();	
+					    
+					    }
+
+					    
+					   	//console.log('SERVER SETTINGS', result);
+					});
+
+
+				},500);
+				
 			}
+
+			// get settings first using the hard way (to prevent a possible race condition)
+			$scope.getSettings(function(settings){
+				$scope.settings = settings;
+				
+				if($scope.settings && $scope.settings.plexTv && $scope.settings.plexTv.token) {
+					$scope.pinSuccess = true;
+					$scope.hasToken = true;
+				}
+
+				$scope.$apply();
+
+			})
 
 			$scope.startPinProcess = function(){
 				$scope.settings.hasSetup = false;
@@ -61,10 +97,10 @@
 				Homey.api( 'GET', '/getPin/', function( err, result ){
 				    if( err ) {
 				    	$scope.error = "Could not get PIN from plex.tv";
-				    	return console.error( err );	
+				    	//return console.error( err );	
 				    } 
 
-				    console.log( result );
+				    // console.log( result );
 
 				    var pin = result.code[0];
 				    currentPinID = result.id[0]._;
@@ -85,7 +121,7 @@
 
 				if(cancel){
 					$timeout.cancel($scope.checkTimer);
-					console.log("checkPin cancelled");
+					// console.log("checkPin cancelled");
 					$scope.pinPending = false;
 					return;
 				}
@@ -96,7 +132,7 @@
 					Homey.api( 'GET', '/checkPinToken/?id=' + pinId, function( err, result ){
 					    if( err ) {
 					    	$scope.error = "Could not get PIN from plex.tv";
-					    	return console.error( err );	
+					    	//return console.error( err );	
 					    } 
 
 					    if(result){
@@ -105,7 +141,7 @@
 					    	$scope.pinSuccess = true;
 					    	$scope.pinPending = false;
 					 		$scope.getSettings();
-					    	console.log("PIN SUCCESS", Homey.settings);
+					    	//console.log("PIN SUCCESS", Homey.settings);
 					    	$scope.getServers();
 					    	$scope.getPlayers();
 					    
@@ -119,36 +155,16 @@
 				}
 			}
 
-			$scope.getSettings = function(){
-
-				$timeout(function(){
-
-					Homey.api( 'GET', '/getSettings', function( err, result ){
-					    if( err ) {
-					    	$scope.error = "Could not get settings from server";
-					    	return console.error( err );	
-					    } 
-
-					    $scope.settings = result;
-					   	$scope.$apply();
-					   	console.log('SERVER SETTINGS', result);
-					});
-
-
-				},500);
-				
-			}
-
 			$scope.getServers = function(){
 
-				console.log("getServers()");
+				//console.log("getServers()");
 
 				Homey.api( 'GET', '/getPlexServers', function( err, result ){
-				    if( err ) return console.error( err );
+				    // if( err ) return console.error( err );
 
 				    if(result){
 				    	
-				  		console.log(result);
+				  		//console.log(result);
 				  		$scope.getSettings();
 				 
 				    }
@@ -159,14 +175,14 @@
 
 			$scope.getPlayers = function(){
 
-				console.log("getPlayers()");
+				//console.log("getPlayers()");
 
 				Homey.api( 'GET', '/getPlexPlayers', function( err, result ){
-				    if( err ) return console.error( err );
+				    //if( err ) return console.error( err );
 
 				    if(result){
 				    	
-				  		console.log(result);
+				  		//console.log(result);
 				  		$scope.getSettings();
 				 
 				    }
@@ -177,14 +193,14 @@
 
 			$scope.setDevice = function(type, deviceObject){
 
-				console.log("setDevice()");
+				//console.log("setDevice()");
 
 				Homey.api( 'POST', '/setDevice/', {type: type, device:deviceObject}, function( err, result ){
-				    if( err ) return console.error( err );
+				    //if( err ) return console.error( err );
 
 				    if(result){
 				    	
-				  		console.log(result);
+				  		//console.log(result);
 				  		$scope.getSettings();
 				 
 				    }
@@ -213,6 +229,8 @@
 			}
 
 			$scope.resetSettings = function(){
+				
+				$scope.settings = {};
 				
 				Homey.api( 'GET', '/resetSettings', function( err, result ){
 				    

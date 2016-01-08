@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "q": "^1.2.0",
-        "plex-api": "^3.1.2",
+        "plex-api": "^3.2.0",
         "plex-api-credentials": "^2.0.0",
         "xml2js": "^0.4.10",
         "lunr": "^0.5.12",
@@ -46,14 +46,18 @@
             "triggers": {
                 "en": [
                     "watch",
-                    "play",
                     "watch a movie",
-                    "watch a series"
+                    "watch a series",
+                    "plex",
+                    "whats",
+                    "what",
+                    "view"
                 ],
                 "nl": [
                     "kijken",
                     "film kijken",
-                    "serie kijken"
+                    "serie kijken",
+                    "plex"
                 ]
             }
         },
@@ -62,16 +66,32 @@
             "importance": 0.8,
             "triggers": {
                 "en": [
-                    "next episode"
+                    "next episode",
+                    "next episodes"
                 ],
                 "nl": [
-                    "volgende aflevering"
+                    "volgende aflevering",
+                    "1 aflevering verder"
+                ]
+            }
+        },
+        {
+            "id": "command|watchpreviousepisode",
+            "importance": 0.8,
+            "triggers": {
+                "en": [
+                    "previous episode",
+                    "previous episodes"
+                ],
+                "nl": [
+                    "vorige aflevering kijken",
+                    "1 aflevering terug"
                 ]
             }
         },
         {
             "id": "command|latest",
-            "importance": 0.1,
+            "importance": 0.5,
             "triggers": {
                 "en": [
                     "latest",
@@ -85,7 +105,7 @@
         },
         {
             "id": "command|first",
-            "importance": 0.1,
+            "importance": 0.5,
             "triggers": {
                 "en": [
                     "first",
@@ -100,7 +120,7 @@
 
         {
             "id": "command|random",
-            "importance": 0.1,
+            "importance": 0.5,
             "triggers": {
                 "en": [
                     "random"
@@ -125,7 +145,7 @@
         },
         {
             "id": "command|pause",
-            "importance": 0.3,
+            "importance": 0.5,
             "triggers": {
                 "en": [
                     "movie pause"
@@ -137,28 +157,39 @@
         },
         {
             "id": "command|continue",
-            "importance": 0.3,
+            "importance": 0.5,
             "triggers": {
                 "en": [
                     "movie continue",
-                    "movie play"
+                    "movie play",
+                    "movieplay"
                 ],
                 "nl": [
                     "film verder",
-                    "film ga verder"
+                    "film ga verder",
+                    "film vervolgen"
                 ]
             }
         },
         {
             "id": "command|stop",
-            "importance": 0.3,
+            "importance": 0.8,
             "triggers": {
                 "en": [
                     "movie stop",
-                    "moviestop"
+                    "moviestop",
+                    "plex stop",
+                    "movie star",
+                    "stop movie",
+                    "stop the movie",
+                    "stop watching",
+                    "watch stop",
+                    "stop"
                 ],
                 "nl": [
-                    "movie stop"
+                    "movie stop",
+                    "stop film",
+                    "film stoppen"
                 ]
             }
         },
@@ -178,7 +209,7 @@
         },
 		{
             "id": "type|movie",
-            "importance": 0.6,
+            "importance": 0.8,
             "triggers": {
                 "en": [
                     "movie",
@@ -192,7 +223,7 @@
         },
         {
             "id": "type|episode",
-            "importance": 0.6,
+            "importance": 0.8,
             "triggers": {
                 "en": [
                     "show",

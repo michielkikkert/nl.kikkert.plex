@@ -50,7 +50,7 @@ var defaultPlexSettings = {
     }
 }
 
-var REMOTE_MODE = true;
+var REMOTE_MODE = plexConfig.remoteMode;
 
 
 var self = {};
@@ -59,17 +59,15 @@ self.init = function() {
 
     Homey.manager('speech-input').on('speech', self.processConversation);
 
-    // Homey.settings = {};
+    // console.log(Homey.settings);
+    
+    // self.resetSettings();
 
-    // return;
+    // console.log(Homey.settings);
 
     if (typeof Homey.settings.servers == "undefined") {
         Homey.settings = defaultPlexSettings;
     }
-
-
-    // Merge the defaults to the Homey settings so all objects exist.
-    // merge(Homey.settings, defaultPlexSettings);
 
     console.log(Homey.settings);
 
@@ -206,51 +204,63 @@ self.setPlexTvToken = function(token) {
 
 self.storeServers = function(serverObject) {
     // console.log("storeServers", serverObject);
-    Homey.settings.servers = serverObject;
+    
+    var ownedServers = [];
 
-    // First unregister media triggers
-    Homey.manager('speech-input').removeTrigger(serverTriggerIds, function(err) {
-        if (!err) {
-            console.log("Unregistering server triggers done");
-        } else {
-            console.log(err);
+    for (var a = 0; a < serverObject.length; a++) {
+        
+        var currentServer = serverObject[a];
+        
+        if (currentServer.attributes.owned == "1") {
+            ownedServers.push(currentServer);
         }
+    }
+
+    Homey.settings.servers = ownedServers;
+
+    // // First unregister media triggers
+    // Homey.manager('speech-input').removeTrigger(serverTriggerIds, function(err) {
+    //     if (!err) {
+    //         console.log("Unregistering server triggers done");
+    //     } else {
+    //         console.log(err);
+    //     }
 
 
-        for (var a = 0; a < serverObject.length; a++) {
-            var currentServer = serverObject[a].attributes;
-            var id = "server|" + a;
-            var triggers = [];
+    //     for (var a = 0; a < serverObject.length; a++) {
+    //         var currentServer = serverObject[a].attributes;
+    //         var id = "server|" + a;
+    //         var triggers = [];
 
-            if (currentServer.owned == "1") {
-                triggers.push('switch to own server');
-            }
+    //         if (currentServer.owned == "1") {
+    //             triggers.push('switch to own server');
+    //         }
 
-            triggers.push("switch to " + currentServer.name);
+    //         triggers.push("switch to " + currentServer.name);
 
-            var triggerObject = {
-                "id": id,
-                "importance": 0.6,
-                "triggers": {
-                    "en": triggers
-                }
-            }
+    //         var triggerObject = {
+    //             "id": id,
+    //             "importance": 0.6,
+    //             "triggers": {
+    //                 "en": triggers
+    //             }
+    //         }
 
-            console.log(triggerObject);
+    //         console.log(triggerObject);
 
-            Homey.manager('speech-input').addTrigger(triggerObject, function(err, result) {
-                // console.log('args', arguments);
-                if (!err) {
-                    console.log("Registering server trigger done");
-                    serverTriggerIds.push(id);
-                } else {
-                    console.log(err);
-                }
-            });
+    //         Homey.manager('speech-input').addTrigger(triggerObject, function(err, result) {
+    //             // console.log('args', arguments);
+    //             if (!err) {
+    //                 console.log("Registering server trigger done");
+    //                 serverTriggerIds.push(id);
+    //             } else {
+    //                 console.log(err);
+    //             }
+    //         });
 
-        }
+    //     }
 
-    })
+    // })
 
 }
 
@@ -275,13 +285,7 @@ self.getSettings = function() {
     return Homey.settings;
 }
 
-self.resetSettings = function() {
-    // Homey.settings.servers.length = 0;
-    // Homey.settings.players.length = 0;
-    // Homey.settings.selected.player = null;
-    // Homey.settings.selected.server = null;
-    // Homey.settings.plexTv.token = null;
-    // Homey.settings.hasSetup = false;
+self.resetSettings = function(callback) {
 
     for (var key in Homey.settings) {
         delete Homey.settings[key]
@@ -304,6 +308,12 @@ self.resetSettings = function() {
         "player": {
             "hostname": false
         }
+    }
+
+    if(typeof callback == 'function'){
+        callback(true);
+    } else {
+        return;
     }
 }
 
@@ -674,10 +684,11 @@ self.addToIndexer = function(indexType, item) {
             this.field('episodeTitle', {
                 boost: 5
             });
-            this.field('episodeindex');
+            this.field('episodeIndex');
             this.field('compoundEpisodeIndex', {
                 boost: 3
             });
+            this.field('verboseSearchTitle', {boost: 10});
             this.field('season');
             this.field('key');
             this.ref('key'); // index ID is the PMS play key or the path within PMS
@@ -695,15 +706,31 @@ self.registerMediaTrigger = function(mediaItem) {
         mediaItem.episodeTitle = "";
     }
 
-    mediaItem.episodeTitle = mediaItem.episodeTitle.replace("(", "");
-    mediaItem.episodeTitle = mediaItem.episodeTitle.replace(")", "");
-    mediaItem.episodeTitle = mediaItem.episodeTitle.replace("&", "and");
-    mediaItem.title = mediaItem.title.replace("(", "");
-    mediaItem.title = mediaItem.title.replace(")", "");
-    mediaItem.title = mediaItem.title.replace("&", "and");
-    mediaItem.title = mediaItem.title.replace("III", "3");
-    mediaItem.title = mediaItem.title.replace("II", "2");
-    mediaItem.title = mediaItem.title.replace("-", "");
+    if(mediaItem.episodeTitle){
+        mediaItem.episodeTitle = mediaItem.episodeTitle.replace("(", "");
+        mediaItem.episodeTitle = mediaItem.episodeTitle.replace(")", "");
+        mediaItem.episodeTitle = mediaItem.episodeTitle.replace("&", "and");
+    }
+
+    if(mediaItem.title){
+        mediaItem.title = mediaItem.title.replace("(", "");
+        mediaItem.title = mediaItem.title.replace(")", "");
+        mediaItem.title = mediaItem.title.replace("&", "and");
+        mediaItem.title = mediaItem.title.replace("III", "3");
+        mediaItem.title = mediaItem.title.replace("II", "2");
+        mediaItem.title = mediaItem.title.replace(" – ", " ");
+        mediaItem.title = mediaItem.title.replace("–", " ");
+    }
+
+    if(mediaItem.secondaryTitle){
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("(", "");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace(")", "");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("&", "and");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("III", "3");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("II", "2");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace(" – ", " ");
+        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("–", " ");
+    }
 
 
     var triggers = [];
@@ -735,7 +762,7 @@ self.registerMediaTrigger = function(mediaItem) {
 
     var triggerObject = {
         "id": id,
-        "importance": 0.1,
+        "importance": 0.7,
         "triggers": {
             "en": triggers
         }
@@ -778,7 +805,8 @@ self.createMediaCacheItem = function(mediaChild) {
         "titleSort": (mediaChild.titleSort) ? mediaChild.titleSort : false,
         "score": 0,
         "compoundEpisodeIndex": 0,
-        "viewOffset": mediaChild.viewOffset || null
+        "viewOffset": mediaChild.viewOffset || null,
+        "verboseSearchTitle" : false
     };
 
     if (cacheTemplate.title.indexOf(':') > 1) {
@@ -789,8 +817,10 @@ self.createMediaCacheItem = function(mediaChild) {
         cacheTemplate.primaryTitle = cacheTemplate.title;
     }
 
+
     if (cacheTemplate.type == 'episode') {
         cacheTemplate.compoundEpisodeIndex = (mediaChild.parentIndex * 1000) + parseInt(mediaChild.index);
+        cacheTemplate.verboseSearchTitle = cacheTemplate.title + " " + cacheTemplate.season + " " + cacheTemplate.episodeIndex;
     }
 
     return cacheTemplate;
@@ -818,18 +848,27 @@ self.getMedia = function() {
 
 self.getSessions = function() {
 
+    console.log("getSessions..");
+
     var deferred = Q.defer();
 
-    plexServer.query("/status/sessions").then(function(sessions) {
-        // console.log(sessions);
-        var response = [];
+    if(self.setPlexServer()){
+        plexServer.query("/status/sessions").then(function(sessions) {
+            // console.log(sessions);
+            var response = [];
 
-        sessions._children.forEach(function(session) {
-            response.push(session);
+            sessions._children.forEach(function(session) {
+                response.push(session);
+            });
+
+            deferred.resolve(response);
+        
+        }, function(err){
+
+            deferred.reject(err);
+
         });
-
-        deferred.resolve(response);
-    });
+    }
 
     return deferred.promise;
 }
@@ -884,6 +923,8 @@ self.processConversation = function(speechObject) {
 
     console.log("speechResults", speechResults);
 
+    // First, make sure we only have the longest results in the speechResults media matches
+
 
     if (speechResults.server.length > 0) {
         var selectedServerObject = Homey.settings.servers[parseInt(speechResults.server)];
@@ -903,6 +944,95 @@ self.processConversation = function(speechObject) {
 
             var speechMedia = speechResults.media;
             var speechMediaLength = speechMedia.length;
+
+            // First handle special commands:
+            if (speechResults.commands.indexOf('watchnextepisode') > -1) {
+
+                self.getSessions().then(function(current) {
+
+
+                    // console.log("Active playing session found", current);
+
+                    if (current.length == 0) {
+                        console.log("No active player session found");
+                        Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
+                        return;
+                    }
+
+                    var mediaItem = self.createMediaCacheItem(current[0]);
+
+
+                    console.log("mediaItem", mediaItem);
+
+                    if (mediaItem.type == 'episode') {
+
+                        var currentEppie = mediaItem.compoundEpisodeIndex;
+                        var currentTitle = mediaItem.title;
+
+                        //TODO: handle end of season scenario 
+
+                        var nextCompoundIndex = parseInt(currentEppie) + 1;
+
+                        var results = indexers['episode'].search(currentTitle + " " + nextCompoundIndex);
+
+                        if (results.length > 0) {
+                            self.playItemInZone(zone, self.keyToMediaItem(results[0].ref));
+                            return true;
+                        } else {
+                            Homey.manager('speech-output').say("Sorry, I couldn't find the next episode for " + currentTitle);
+                            return;
+                        }
+
+                    }
+
+                })
+            }
+
+            if (speechResults.commands.indexOf('watchpreviousepisode') > -1) {
+
+                console.log("COMMAND: watchpreviousepisode triggered!");
+
+                self.getSessions().then(function(current) {
+
+
+                    console.log("Active playing session found", current);
+
+                    if (current.length == 0) {
+                        console.log("No active player session found");
+                        Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
+                        return;
+                    }
+
+                    var mediaItem = self.createMediaCacheItem(current[0]);
+
+
+                    console.log("mediaItem", mediaItem);
+
+                    if (mediaItem.type == 'episode') {
+
+                        var currentEppie = mediaItem.compoundEpisodeIndex;
+                        var currentTitle = mediaItem.title;
+
+                        //TODO: handle begin of season scenario 
+
+                        var prevCompoundIndex = parseInt(currentEppie) - 1;
+
+                        var results = indexers['episode'].search(currentTitle + " " + prevCompoundIndex);
+
+                        if (results.length > 0) {
+                            self.playItemInZone(zone, self.keyToMediaItem(results[0].ref));
+                            return true;
+                        } else {
+                            Homey.manager('speech-output').say("Sorry, I couldn't find the next episode for " + currentTitle);
+                            return;
+                        }
+
+                    }
+
+                }, function(err){
+                    console.log("ERROR: watchpreviousepisode", err);
+                })
+            }
 
 
             // First check the specific command cases
@@ -1048,45 +1178,6 @@ self.processConversation = function(speechObject) {
                 }
             }
 
-            if (speechResults.commands.indexOf('watchnextepisode') > -1) {
-
-                self.getSessions().then(function(current) {
-
-
-                    // console.log("Active playing session found", current);
-
-                    if (current.length == 0) {
-                        console.log("No active player session found");
-                        Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
-                        return;
-                    }
-
-                    var mediaItem = self.createMediaCacheItem(current[0]);
-
-
-                    console.log("mediaItem", mediaItem);
-
-                    if (mediaItem.type == 'episode') {
-
-                        var currentEppie = mediaItem.compoundEpisodeIndex;
-                        var currentTitle = mediaItem.title;
-
-                        var nextCompoundIndex = parseInt(currentEppie) + 1;
-
-                        var results = indexers['episode'].search(currentTitle + " " + nextCompoundIndex);
-
-                        if (results.length > 0) {
-                            self.playItemInZone(zone, self.keyToMediaItem(results[0].ref));
-                        } else {
-                            Homey.manager('speech-output').say("Sorry, I couldn't find the next episode for " + currentTitle);
-                            return;
-                        }
-
-                    }
-
-                })
-            }
-
             // No match in the media speech triggers or the type triggers. 
             // Speech might have misunderstood, the user might nog have asked for a media item yet, or the item asked for
             // doesn't exist in the Plex lib.
@@ -1110,10 +1201,10 @@ self.processConversation = function(speechObject) {
             // No matching media found
             // TODO: ask for title of type
 
-            if (speechMediaLength == 0 && speechResults.types.length == 1) {
-                console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
-                Homey.manager('speech-output').say("What  " + speechResults.types[0] + " would you like to watch?"); // ask
-            }
+            // if (speechMediaLength == 0 && speechResults.types.length == 1) {
+            //     console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
+            //     Homey.manager('speech-output').say("What  " + speechResults.types[0] + " would you like to watch?"); // ask
+            // }
         }
 
 
@@ -1164,12 +1255,14 @@ self.getSingleResult = function(selection, speechResults) {
     console.log("GOING TO getSingleResult() with number of items", selection.length);
 
     var zone = (speechResults.zones.length > 0) ? speechResults.zones[0] : 'default';
-    var speechMatch = speechResults.media[0].match;
+    
+    var longSpeechMediaResults = self.getLongestItemsInSpeechMedia(speechResults.media);
+    var speechMatch = longSpeechMediaResults[0].match;
     var numResults = selection.length;
     var titles = [];
     var secondaryTitles = [];
 
-    console.log("getSingleResult", selection);
+    // console.log("getSingleResult", selection);
 
     if (selection.length == 0) {
         console.log("Something is wrong, probably failed to register the speech triggers correctly");
@@ -1379,8 +1472,32 @@ self.getSingleResult = function(selection, speechResults) {
                 Homey.manager('speech-output').say("Okay, playing a random episode of " + speechMatch);
 
                 self.playItemInZone(zone, randMedia);
-
                 return true;
+
+            }
+
+            // Let's try if we can get a good match from the indexer
+
+
+            var concatSearchString = speechMatch + " " + result;
+            var eppieConcatSearch = indexers['episode'].search(concatSearchString);
+
+            console.log("Trying search concat", concatSearchString);
+            console.log("Search result:", eppieConcatSearch);
+
+            if(eppieConcatSearch.length > 0){
+
+                var bestEppieIndexResult = self.getBestResult(eppieConcatSearch);
+                console.log("bestEppieIndexResult", bestEppieIndexResult);
+
+                var bestEppieMedia = self.keyToMediaItem(bestEppieIndexResult.ref);
+                console.log("bestEppieMedia", bestEppieMedia);
+
+
+                if(bestEppieMedia){
+                    self.playItemInZone(zone, bestEppieMedia);
+                    return true;
+                }
 
             }
 

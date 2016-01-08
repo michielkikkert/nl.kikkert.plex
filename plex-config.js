@@ -1,6 +1,7 @@
 var plexConfig = {
 
-	"supportedMediaTypes" : ['movie', 'episode']
+	"supportedMediaTypes" : ['movie', 'episode'],
+	"remoteMode" : false
 };
 
 module.exports = plexConfig;
