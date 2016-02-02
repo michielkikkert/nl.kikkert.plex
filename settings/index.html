@@ -51,7 +51,7 @@
 					Homey.api( 'GET', '/getSettings', function( err, result ){
 					    if( err ) {
 					    	$scope.error = "Could not get settings from server";
-					    	//return console.error( err );	
+					    	console.log('error', $scope.error);
 					    } 
 
 					    if(typeof callback === 'function'){

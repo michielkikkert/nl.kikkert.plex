@@ -4,7 +4,6 @@ var Q = require('q');
 var PlexAPI = require("plex-api");
 var PlexAuth = require('plex-api-credentials');
 var lunr = require('lunr');
-var merge = require('object-merge');
 var url = require('url');
 var constants = require('./const');
 var mediaTypes = require('./mediaTypes');
@@ -30,7 +29,7 @@ var mediaCache = {
 };
 
 var defaultPlexSettings = {
-    "hasSetup": null,
+    "hasSetup": false,
     "plexTv": {
         "username": null,
         "password": null,
@@ -42,15 +41,19 @@ var defaultPlexSettings = {
     "players": [],
     "selected": {
         "server": {
-            "hostname": false
+            "hostname": null
         },
         "player": {
-            "hostname": false
+            "hostname": null
         }
     }
 }
 
+var settings = null;
 var REMOTE_MODE = plexConfig.remoteMode;
+var store = function(plex){
+    Homey.manager('settings').set('plex', plex);
+}
 
 
 var self = {};
@@ -59,30 +62,25 @@ self.init = function() {
 
     Homey.manager('speech-input').on('speech', self.processConversation);
 
-    // console.log(Homey.settings);
-    
     // self.resetSettings();
 
-    // console.log(Homey.settings);
+    if(!Homey.manager('settings').get('plex')){
+       store(defaultPlexSettings);
+    } 
 
-    if (typeof Homey.settings.servers == "undefined") {
-        Homey.settings = defaultPlexSettings;
-    }
-
-    console.log(Homey.settings);
+    settings = Homey.manager('settings').get('plex');
 
     self.setPlexTv();
 
-
-    if (!Homey.settings.selected.server.hostname || !Homey.settings.selected.player.hostname) {
-        Homey.settings.hasSetup = false;
+    if (!settings.selected.server.hostname || !settings.selected.player.hostname) {
+        settings.hasSetup = false;
     } else {
-        Homey.settings.hasSetup = true;
+        settings.hasSetup = true;
         self.setPlexServer();
         self.setPlexPlayer();
     }
 
-    if (Homey.settings.hasSetup) {
+    if (settings.hasSetup) {
 
         // is the plexserver available?
         self.isServerAvailable().then(function() {
@@ -105,6 +103,8 @@ self.init = function() {
             console.log("Player is NOT available!");
         });
 
+    } else {
+        console.log("Plex app doesn't have any setup yet..Visit the settings page on your Homey!");
     }
 
     console.log(__("hello", {
@@ -136,8 +136,8 @@ self.getApiConfig = function(selected) {
 }
 
 self.setPlexServer = function() {
-    if (Homey.settings.selected.server) {
-        plexServer = new PlexAPI(self.getApiConfig(Homey.settings.selected.server));
+    if (settings.selected.server) {
+        plexServer = new PlexAPI(self.getApiConfig(settings.selected.server));
         return true;
     } else {
         return false;
@@ -145,16 +145,16 @@ self.setPlexServer = function() {
 }
 
 self.setPlexPlayer = function() {
-    if (Homey.settings.selected.player) {
-        plexPlayer = new PlexAPI(self.getApiConfig(Homey.settings.selected.player));
-        return Homey.settings.selected.player;
+    if (settings.selected.player) {
+        plexPlayer = new PlexAPI(self.getApiConfig(settings.selected.player));
+        return settings.selected.player;
     } else {
         return false;
     }
 }
 
 self.setPlexTv = function() {
-    plexTv = new PlexAPI(self.getApiConfig(Homey.settings.plexTv));
+    plexTv = new PlexAPI(self.getApiConfig(settings.plexTv));
 }
 
 
@@ -198,7 +198,8 @@ self.checkPlexPin = function(pinId, callback) {
 
 self.setPlexTvToken = function(token) {
     if (token && token != "") {
-        Homey.settings.plexTv.token = token;
+        settings.plexTv.token = token;
+        store(settings);
     }
 }
 
@@ -216,7 +217,8 @@ self.storeServers = function(serverObject) {
         }
     }
 
-    Homey.settings.servers = ownedServers;
+    settings.servers = ownedServers;
+    store(settings);
 
     // // First unregister media triggers
     // Homey.manager('speech-input').removeTrigger(serverTriggerIds, function(err) {
@@ -277,44 +279,17 @@ self.storePlayers = function(devicesObject) {
 
     })
 
-    Homey.settings.players = players;
+    settings.players = players;
+    store(settings);
 }
 
 
-self.getSettings = function() {
-    return Homey.settings;
+self.getSettings = function(key) {
+    return settings;
 }
 
-self.resetSettings = function(callback) {
-
-    for (var key in Homey.settings) {
-        delete Homey.settings[key]
-    }
-
-    Homey.settings.hasSetup = defaultPlexSettings.hasSetup;
-    Homey.settings.plexTv = {
-        "username": null,
-        "password": null,
-        "token": null,
-        "hostname": constants.plexTvHostname,
-        "port": constants.plexTvPort
-    }
-    Homey.settings.servers = [];
-    Homey.settings.players = [];
-    Homey.settings.selected = {
-        "server": {
-            "hostname": false
-        },
-        "player": {
-            "hostname": false
-        }
-    }
-
-    if(typeof callback == 'function'){
-        callback(true);
-    } else {
-        return;
-    }
+self.resetSettings = function() {
+    Homey.manager('settings').set('plex', defaultPlexSettings);
 }
 
 self.getPlexServers = function(callback) {
@@ -416,21 +391,23 @@ self.setSelectedDevice = function(args) {
     var device = args.device;
 
     if (args.type == "player") {
-        Homey.settings.selected.player = self.getPlayerTemplate(device);
+        settings.selected.player = self.getPlayerTemplate(device);
 
     };
 
     if (args.type == "server") {
-        Homey.settings.selected.server = self.getServerTemplate(device);
+        settings.selected.server = self.getServerTemplate(device);
         self.updateMediaCache();
 
     };
 
-    if (Homey.settings.selected.server.hostname && Homey.settings.selected.player.hostname) {
-        Homey.settings.hasSetup = true;
+    if (settings.selected.server.hostname && settings.selected.player.hostname) {
+        settings.hasSetup = true;
     } else {
-        Homey.settings.hasSetup = false;
+        settings.hasSetup = false;
     }
+
+    store(settings);
 
     return true;
 
@@ -793,7 +770,7 @@ self.unRegisterMediaTriggers = function(callback) {
 self.createMediaCacheItem = function(mediaChild) {
 
     var cacheTemplate = {
-        "machineIdentifier": Homey.settings.selected.server.machineIdentifier,
+        "machineIdentifier": settings.selected.server.machineIdentifier,
         "type": mediaChild.type,
         "title": (mediaChild.type == 'movie') ? mediaChild.title : mediaChild.grandparentTitle,
         "key": mediaChild.key,
@@ -927,7 +904,7 @@ self.processConversation = function(speechObject) {
 
 
     if (speechResults.server.length > 0) {
-        var selectedServerObject = Homey.settings.servers[parseInt(speechResults.server)];
+        var selectedServerObject = settings.servers[parseInt(speechResults.server)];
         self.setSelectedDevice({
             "type": "server",
             "device": selectedServerObject
@@ -937,6 +914,54 @@ self.processConversation = function(speechObject) {
     }
 
     if (speechResults.commands.length > 0) {
+
+        // Test for commands:
+
+        if (speechResults.commands.indexOf('pause') > -1) {
+            self.controls().pause();
+            return true;
+        }
+        if (speechResults.commands.indexOf('continue') > -1) {
+            self.controls().play();
+            return true;
+        }
+        if (speechResults.commands.indexOf('stop') > -1) {
+            self.controls().stop();
+            return true;
+        }
+        if (speechResults.commands.indexOf('refresh') > -1) {
+            self.updateMediaCache();
+            return true;
+        }
+
+        if (speechResults.commands.indexOf('currentlyplaying') > -1) {
+            self.getSessions().then(function(current) {
+
+                console.log("Active playing session found", current);
+
+                var friendly = "";
+                var mediaItem = self.createMediaCacheItem(current[0]);
+                console.log(mediaItem);
+
+                if (mediaItem.type == 'episode') {
+
+                    friendly = "You are watching an episode of " + mediaItem.title + " named " + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
+
+                } else {
+
+                    friendly = "You are watching " + mediaItem.title;
+
+                }
+
+                console.log(friendly);
+                Homey.manager('speech-output').say(friendly);
+            });
+
+            return true;
+        }
+
+        // Main "I want to watch something" Logic
+
 
         if (speechResults.commands.indexOf('watch') > -1) {
 
@@ -1207,44 +1232,6 @@ self.processConversation = function(speechObject) {
             // }
         }
 
-
-        if (speechResults.commands.indexOf('pause') > -1) {
-            self.controls().pause();
-        }
-        if (speechResults.commands.indexOf('continue') > -1) {
-            self.controls().play();
-        }
-        if (speechResults.commands.indexOf('stop') > -1) {
-            self.controls().stop();
-        }
-        if (speechResults.commands.indexOf('refresh') > -1) {
-            self.updateMediaCache();
-        }
-
-        if (speechResults.commands.indexOf('currentlyplaying') > -1) {
-            self.getSessions().then(function(current) {
-
-                console.log("Active playing session found", current);
-
-                var friendly = "";
-                var mediaItem = self.createMediaCacheItem(current[0]);
-                console.log(mediaItem);
-
-                if (mediaItem.type == 'episode') {
-
-                    friendly = "You are watching an episode of " + mediaItem.title + " named " + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
-
-                } else {
-
-                    friendly = "You are watching " + mediaItem.title;
-
-                }
-
-                console.log(friendly);
-                Homey.manager('speech-output').say(friendly);
-            })
-        }
-
     }
 }
 
@@ -1294,7 +1281,7 @@ self.getSingleResult = function(selection, speechResults) {
         console.log("secondaryTitles", secondaryTitles);
 
         var question = "I found " + numResults + " matching results for " + speechMatch + ". Which would you like to watch? ";
-        question += titles.join(",");
+        question += secondaryTitles.join(",");
         question += "?";
 
 

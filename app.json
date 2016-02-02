@@ -18,9 +18,7 @@
         "q": "^1.2.0",
         "plex-api": "^3.2.0",
         "plex-api-credentials": "^2.0.0",
-        "xml2js": "^0.4.10",
-        "lunr": "^0.5.12",
-        "object-merge" : "^2.5.1"
+        "lunr": "^0.5.12"
     },
     "permissions": [
         "homey:manager:speech-output",
@@ -42,15 +40,13 @@
         },
         {
             "id": "command|watch",
-            "importance": 1,
+            "importance": 0.8,
             "triggers": {
                 "en": [
                     "watch",
                     "watch a movie",
                     "watch a series",
                     "plex",
-                    "whats",
-                    "what",
                     "view"
                 ],
                 "nl": [
