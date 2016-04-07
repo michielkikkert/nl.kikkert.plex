@@ -289,7 +289,9 @@ self.getSettings = function(key) {
 }
 
 self.resetSettings = function() {
-    Homey.manager('settings').set('plex', defaultPlexSettings);
+    store(defaultPlexSettings);
+    settings = null;
+    self.init();
 }
 
 self.getPlexServers = function(callback) {

@@ -1,7 +1,7 @@
 var constants = {
 	'identifier' 		: 'homey-plex-controller',
 	'product'			: 'Homey Plex Controller',
-	'version'			: '0.1',
+	'version'			: '0.11',
 	'deviceName'		: 'Homey',
 	'platform'			: 'Homey',
 	'plexTvHostname'	: 'plex.tv',

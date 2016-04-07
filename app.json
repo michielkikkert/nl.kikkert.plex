@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Homey plex app",
