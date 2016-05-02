@@ -10,9 +10,26 @@
         "en": "Control a plex media server via Homey",
         "nl": "Bestuur plex media server met je homey"
     },
+    "category": "video",
+    "images": {
+        "large": "assets/images/large.png",
+        "small": "assets/images/small.png"
+    },
     "author": {
         "name": "Michiel Kikkert",
         "email": "michiel@kikkert.nl"
+    },
+    "contributors": {
+        "developers": [
+            {
+                "name": "Michiel Kikkert",
+                "email": "michiel@kikkert.nl"
+            },
+            {
+                "name": "Phillip Johnsen",
+                "email": "phillip@lightweight.no"
+            }
+        ]
     },
     "dependencies": {
         "q": "^1.2.0",
@@ -25,6 +42,125 @@
         "homey:manager:speech-input",
         "homey:manager:ledring"
     ],
+    "drivers": [
+        {
+            "id": "pht",
+            "name": {
+                "en": "PHT Driver",
+                "nl": "PHT Driver"
+            },
+            "images": {
+                "large": "drivers/pht/assets/large.png",
+                "small": "drivers/pht/assets/small.png"
+            },
+            "class": "plexplayer",
+            "capabilities": [ "play", "pause", "stop" ],
+            "pair": [
+                {
+                  "id": "configure_players",
+                  "template" : "list_devices",
+                  "navigation": {
+                        "next": "add_players"
+                    }
+                },
+                
+                {
+                  "id": "add_players",
+                  "template": "add_devices"
+                }
+            ]
+        },
+        {
+            "id": "chromecast",
+            "name": {
+                "en": "ChromeCast Driver",
+                "nl": "ChromeCast Driver"
+            },
+            "images": {
+                "large": "drivers/chromecast/assets/large.jpg",
+                "small": "drivers/chromecast/assets/small.jpg"
+            },
+            "class": "plexplayer",
+            "capabilities": [ "play", "pause", "stop" ],
+            "pair": [
+                {
+                  "id": "configure_players",
+                  "template" : "list_devices",
+                  "navigation": {
+                        "next": "add_players"
+                    }
+                },
+                
+                {
+                  "id": "add_players",
+                  "template": "add_devices"
+                }
+            ]
+        }
+    ],
+    "flow": {
+        "triggers": [
+            {
+                "id" : "media_start",
+                "title": { 
+                    "en": "Plex starts playing"
+                }
+            },
+            {
+               "id" : "media_stop",
+                "title": { 
+                    "en": "Plex stops playing"
+                } 
+            }
+
+        ],
+        "actions": [
+            {
+                "id": "playitemchrome",
+                "title": {
+                    "en": "Play Plex Media",
+                    "nl": "Speel Plex Media"
+                },
+                "fluidArgs": true,
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    },
+                    {
+                        "name": "selected",
+                        "type": "autocomplete",
+                        "placeholder": {
+                            "en": "Find a media item"
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "playitempht",
+                "title": {
+                    "en": "Play Plex Media",
+                    "nl": "Speel Plex Media"
+                },
+                "fluidArgs": true,
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
+                    },
+                    {
+                        "name": "selected",
+                        "type": "autocomplete",
+                        "placeholder": {
+                            "en": "Find a media item"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
     "speech": [
         {
             "id": "app|plex",
@@ -47,7 +183,10 @@
                     "watch a movie",
                     "watch a series",
                     "plex",
-                    "view"
+                    "view",
+                    "which",
+                    "what",
+                    "play"
                 ],
                 "nl": [
                     "kijken",
@@ -180,7 +319,11 @@
                     "stop the movie",
                     "stop watching",
                     "watch stop",
-                    "stop"
+                    "stop",
+                    "movie starts",
+                    "end movie",
+                    "stop playing",
+                    "movie still"
                 ],
                 "nl": [
                     "movie stop",

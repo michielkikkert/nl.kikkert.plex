@@ -1,0 +1,11 @@
+<script>
+Homey.emit( 'start', { 'foo': 'bar' }, function( err, result ){
+    console.log(result); // result is Started!
+});
+
+Homey.on('hello', function(err, data){
+	console.log(data);
+})
+
+</script>
+<h4>Configure your plex home theater</h4>

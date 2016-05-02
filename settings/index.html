@@ -30,7 +30,8 @@
 	
 		<script>
 
-
+		// This entire settings page could probably be refactored to use the (now functional) Homey sockets. This page was made when Homey was not fully functional yet... and slightly more buggy :-)
+		
 		angular.module('PlexSettingsApp', [])
 
 		.controller('SettingsCtrl', ['$scope', '$rootScope', '$timeout', '$location', function( $scope, $rootScope, $timeout, $location) {
@@ -43,7 +44,6 @@
 			$scope.hasToken = false;
 			$scope.settings = null;
 
-
 			$scope.getSettings = function(callback){
 
 				$timeout(function(){
@@ -55,17 +55,11 @@
 					    } 
 
 					    if(typeof callback === 'function'){
-
 					    	callback(result);
-					    
-					    }else {
-					    	
+					    } else {
 					    	$scope.settings = result;
 					   		$scope.$apply();	
-					    
 					    }
-
-					    
 					   	console.log('SERVER SETTINGS', result);
 					});
 
@@ -83,6 +77,12 @@
 					$scope.hasToken = true;
 				}
 
+				// If only one server, and no server has been selected yet, auto select it.
+				if($scope.settings.servers.length == 1 && !$scope.settings.selected.server.hostname){
+					$scope.setDevice("server", $scope.settings.servers[0]);
+					$scope.getSettings();
+				}
+
 				$scope.$apply();
 
 			})
@@ -97,21 +97,15 @@
 				Homey.api( 'GET', '/getPin/', function( err, result ){
 				    if( err ) {
 				    	$scope.error = "Could not get PIN from plex.tv";
-				    	//return console.error( err );	
 				    } 
-
-				    // console.log( result );
 
 				    var pin = result.code[0];
 				    currentPinID = result.id[0]._;
-
 				    $scope.pinResponse = pin;
 				    $scope.pinPending = true;
 				    $scope.checkPin(currentPinID);
 				    $scope.$apply();
-
 				});
-
 			}
 
 
@@ -121,29 +115,23 @@
 
 				if(cancel){
 					$timeout.cancel($scope.checkTimer);
-					// console.log("checkPin cancelled");
 					$scope.pinPending = false;
 					return;
 				}
 
 				if(pinId && pinId !=""){
 
-
 					Homey.api( 'GET', '/checkPinToken/?id=' + pinId, function( err, result ){
 					    if( err ) {
 					    	$scope.error = "Could not get PIN from plex.tv";
-					    	//return console.error( err );	
 					    } 
 
 					    if(result){
-					    	
 					    	$timeout.cancel($scope.checkTimer);
 					    	$scope.pinSuccess = true;
 					    	$scope.pinPending = false;
 					 		$scope.getSettings();
-					    	//console.log("PIN SUCCESS", Homey.settings);
 					    	$scope.getServers();
-					    	$scope.getPlayers();
 					    
 					    } else {
 					    	$scope.checkTimer = $timeout(function(){
@@ -156,53 +144,17 @@
 			}
 
 			$scope.getServers = function(){
-
-				//console.log("getServers()");
-
 				Homey.api( 'GET', '/getPlexServers', function( err, result ){
-				    // if( err ) return console.error( err );
-
 				    if(result){
-				    	
-				  		//console.log(result);
 				  		$scope.getSettings();
-				 
 				    }
-
 				});
-				
-			}
-
-			$scope.getPlayers = function(){
-
-				//console.log("getPlayers()");
-
-				Homey.api( 'GET', '/getPlexPlayers', function( err, result ){
-				    //if( err ) return console.error( err );
-
-				    if(result){
-				    	
-				  		//console.log(result);
-				  		$scope.getSettings();
-				 
-				    }
-
-				});
-				
 			}
 
 			$scope.setDevice = function(type, deviceObject){
-
-				//console.log("setDevice()");
-
 				Homey.api( 'POST', '/setDevice/', {type: type, device:deviceObject}, function( err, result ){
-				    //if( err ) return console.error( err );
-
 				    if(result){
-				    	
-				  		//console.log(result);
 				  		$scope.getSettings();
-				 
 				    }
 
 				});
@@ -214,17 +166,6 @@
 						return true
 					}
 				}
-
-				return false;
-			}
-
-			$scope.isSelectedPlayer = function(id){
-				if($scope.settings.selected.player){
-					if($scope.settings.selected.player.clientIdentifier == id){
-						return true
-					}
-				}
-
 				return false;
 			}
 
@@ -241,8 +182,6 @@
 			}
 
 			$scope.getServers();
-			$scope.getPlayers();
-
 
 		}]);
 
@@ -296,12 +235,13 @@
 				
 				<div ng-repeat = "server in settings.servers" class="server-block">
 					<span ng-class="{'selected':isSelectedServer(server.attributes.machineIdentifier)}">{{server.attributes.name}} - {{server.attributes.address}}</span>
-					<button ng-click = "setDevice('server', server)">Select</button>
+					<button ng-click = "setDevice('server', server)" ng-show="!isSelectedServer(server.attributes.machineIdentifier)">Select</button>
 				</div>
 
 			</div>
 
-			<div id="players-container" class="container">
+			<!-- players are devices and controlled by a driver now -->
+			<!-- <div id="players-container" class="container">
 				<h1>Players</h1>
 
 				<div ng-repeat = "player in settings.players" class="server-block">
@@ -309,15 +249,14 @@
 					<button ng-click = "setDevice('player', player)">Select</button>
 				</div>
 
-			</div>
+			</div> -->
 		</div>
 
 
-		<button ng-click="getSettings()">Settings (NG)</button>
+		<!-- <button ng-click="getSettings()">Settings (NG)</button> -->
 		<button ng-click="resetSettings()">Reset settings</button>
 		
 		<br/><br/><br/><br/><br/><br/>
-		<!-- <pre>{{settings | json}}</pre> -->
 
 	</body>
 </html>
