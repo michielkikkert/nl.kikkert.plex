@@ -3,11 +3,11 @@
     "version": "1.0.1",
     "compatibility": "0.x || 1.x",
     "name": {
-        "en": "Homey plex app",
-        "nl": "Homey plex app"
+        "en": "Plex",
+        "nl": "Plex"
     },
     "description": {
-        "en": "Control a plex media server via Homey",
+        "en": "Control a plex media server with your Homey",
         "nl": "Bestuur plex media server met je homey"
     },
     "category": "video",
@@ -46,8 +46,8 @@
         {
             "id": "pht",
             "name": {
-                "en": "PHT Driver",
-                "nl": "PHT Driver"
+                "en": "Plex Home Theater",
+                "nl": "Plex Home Theater"
             },
             "images": {
                 "large": "drivers/pht/assets/large.png",
@@ -73,8 +73,8 @@
         {
             "id": "chromecast",
             "name": {
-                "en": "ChromeCast Driver",
-                "nl": "ChromeCast Driver"
+                "en": "ChromeCast",
+                "nl": "ChromeCast"
             },
             "images": {
                 "large": "drivers/chromecast/assets/large.jpg",

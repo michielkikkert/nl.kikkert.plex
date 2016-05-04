@@ -102,7 +102,8 @@ self.init = function() {
     
     }
 
-    // As I can't find a way to define a single action, but still show the 2 different driver devices in the Flow manager, there is duplication needed. I welcome input on how to improve this.
+    // TODO: 
+    // As I can't find a way to define a single action, but still show the 2 different driver devices in the Flow manager, there is duplication needed. Refactor this for next release by putting the actualy autocomplete function in app.js and the flow triggers in their subsequent drivers.
 
     Homey.manager('flow').on('action.playitemchrome.selected.autocomplete', function( callback, args ){
         var items = [];
@@ -975,6 +976,9 @@ self.processConversation = function(speechObject) {
         if (speechResults.commands.indexOf('currentlyplaying') > -1) {
             
             Homey.log("currentlyplaying", speechResults);
+
+            // TODO:
+            // Move these driver specific tests to the drivers while exposing the logic in app.js (API)
 
             if(speechResults.devices[0].type == 'pht'){
                 self.getSessions().then(function(current) {
