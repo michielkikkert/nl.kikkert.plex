@@ -18,6 +18,16 @@ self.init = function(devices_data, callback){
     console.log("players installed", devices_data.length);
     console.log("players", devices_data);
     installedPlayers = devices_data;
+
+    Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
+        callback( null, plexApp.searchAutoComplete(args.query) ); 
+    });
+
+    Homey.manager('flow').on('action.playitempht', function( callback, args ){
+        plexApi.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback();
 }
 

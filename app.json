@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Plex",
@@ -28,6 +28,10 @@
             {
                 "name": "Phillip Johnsen",
                 "email": "phillip@lightweight.no"
+            },
+            {
+                "name": "Greg Laabs",
+                "email": "OverloadUT@gmail.com"
             }
         ]
     },

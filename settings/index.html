@@ -87,6 +87,10 @@
 
 			})
 
+			$scope.getFirstLocalAddress = function(addresses){
+				return addresses.split(',')[0];
+			}
+
 			$scope.startPinProcess = function(){
 				$scope.settings.hasSetup = false;
 				$scope.pinSuccess = false;
@@ -234,7 +238,7 @@
 				<h1>Plex Media server</h1>
 				
 				<div ng-repeat = "server in settings.servers" class="server-block">
-					<span ng-class="{'selected':isSelectedServer(server.attributes.machineIdentifier)}">{{server.attributes.name}} - {{server.attributes.address}}</span>
+					<span ng-class="{'selected':isSelectedServer(server.attributes.machineIdentifier)}">{{server.attributes.name}} - {{getFirstLocalAddress(server.attributes.localAddresses)}} (remote: {{server.attributes.address}})</span>
 					<button ng-click = "setDevice('server', server)" ng-show="!isSelectedServer(server.attributes.machineIdentifier)">Select</button>
 				</div>
 

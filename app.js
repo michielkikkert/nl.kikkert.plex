@@ -101,66 +101,6 @@ self.init = function() {
         Homey.log("Plex app doesn't have any setup yet..Visit the settings page on your Homey!");
     
     }
-
-    // TODO: 
-    // As I can't find a way to define a single action, but still show the 2 different driver devices in the Flow manager, there is duplication needed. Refactor this for next release by putting the actualy autocomplete function in app.js and the flow triggers in their subsequent drivers.
-
-    Homey.manager('flow').on('action.playitemchrome.selected.autocomplete', function( callback, args ){
-        var items = [];
-        if(args.query && args.query !=""){
-            var results = indexers.autocomplete.search(args.query);
-            results.forEach(function(result){
-                var mediaItem = self.keyToMediaItem(result.ref);
-                var item = {}
-
-                if(mediaItem.type == "movie"){
-                    item.name = (mediaItem.secondaryTitle) ? mediaItem.title + " - " + mediaItem.secondaryTitle : mediaItem.title;
-                }
-                if(mediaItem.type == "episode"){
-                    item.name = (mediaItem.verboseSearchTitle) ? mediaItem.verboseSearchTitle : mediaItem.title;
-                }
-
-                item.mediaItem = mediaItem;
-                items.push(item);
-            })
-        }
-        callback( null, items );
-    });
-
-    Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
-        var items = [];
-        if(args.query && args.query !=""){
-            var results = indexers.autocomplete.search(args.query);
-            results.forEach(function(result){
-                var mediaItem = self.keyToMediaItem(result.ref);
-                var item = {}
-
-                if(mediaItem.type == "movie"){
-                    item.name = (mediaItem.secondaryTitle) ? mediaItem.title + " - " + mediaItem.secondaryTitle : mediaItem.title;
-                }
-
-                if(mediaItem.type == "episode"){
-                    item.name = (mediaItem.verboseSearchTitle) ? mediaItem.verboseSearchTitle : mediaItem.title;
-                }
-
-                item.mediaItem = mediaItem;
-                items.push(item);
-            })
-        }
-        callback( null, items ); 
-    });
-    
-    Homey.manager('flow').on('action.playitemchrome', function( callback, args ){
-        Homey.log(args); 
-        self.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
-        callback( null, true );
-    });
-
-    Homey.manager('flow').on('action.playitempht', function( callback, args ){
-        Homey.log(args);
-        self.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
-        callback( null, true );
-    });
     
 }
 
@@ -177,6 +117,35 @@ self.autoUpdate = function(){
         self.autoUpdate();
 
     }, plexConfig.autoUpdateTime);
+}
+
+self.searchAutoComplete = function(query){
+
+    var items = [];
+
+    if(query && query !=""){
+        
+        if(typeof indexers.autocomplete !="undefined"){
+            var results = indexers.autocomplete.search(query);
+            results.forEach(function(result){
+                var mediaItem = self.keyToMediaItem(result.ref);
+                var item = {}
+
+                if(mediaItem.type == "movie"){
+                    item.name = (mediaItem.secondaryTitle) ? mediaItem.title + " - " + mediaItem.secondaryTitle : mediaItem.title;
+                }
+                if(mediaItem.type == "episode"){
+                    item.name = (mediaItem.verboseSearchTitle) ? mediaItem.verboseSearchTitle : mediaItem.title;
+                }
+
+                item.mediaItem = mediaItem;
+                items.push(item);
+            })
+        }
+        
+    }
+
+    return items;
 }
 
 self.getHeaderOptions = function() {
@@ -429,14 +398,17 @@ self.getServerTemplate = function(device) {
 
     // TODO: let the user make a choice to access using the remote IP or the local network (for owned servers)
 
+    var local = device.attributes.localAddresses.split(',')[0];
+    var hostname = (device.attributes.owned === "1") ? local : device.attributes.host;
+
     return {
         "name": device.attributes.name,
         "machineIdentifier": device.attributes.machineIdentifier,
         "token": device.attributes.accessToken,
-        "hostname": device.attributes.host,
+        "hostname": hostname,
         "port": device.attributes.port,
         "owned": device.attributes.owned,
-        "local": device.attributes.localAddresses.split(',')[0]
+        "local": local
     }
 }
 
@@ -1808,8 +1780,9 @@ self.api = {
     getSettings: self.getSettings,
     resetSettings: self.resetSettings,
     setSelectedDevice: self.setSelectedDevice,
-    getPlayerTemplate: self.getPlayerTemplate
-
+    getPlayerTemplate: self.getPlayerTemplate,
+    searchAutoComplete: self.searchAutoComplete,
+    player: self.player
 }
 
 module.exports = {

@@ -1,6 +1,7 @@
 'use strict'
 
 var ChromecastAPI = require('chromecast-api')
+var plexApp = Homey.app.api;
 var devices = []
 var self = {};
 var installedPlayers = [];
@@ -11,6 +12,16 @@ self.init = function(devices_data, callback) {
     Homey.log('Chromecast driver init', devices_data)
     discoverChromecasts()
     installedPlayers = devices_data;
+    
+    Homey.manager('flow').on('action.playitemchrome.selected.autocomplete', function( callback, args ){
+        callback( null, plexApp.searchAutoComplete(args.query) ); 
+    });
+
+    Homey.manager('flow').on('action.playitemchrome', function( callback, args ){
+        plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback()
 }
 
