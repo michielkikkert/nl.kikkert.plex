@@ -1257,7 +1257,7 @@ self.processConversation = function(speechObject) {
                 // Pretty much unknown what the user wants. I have a 'watch' command, but no type (movie|episode) and no title.
                 // We need to abort here.
 
-                var unknownString = speechResults.transcript.replace('watch', '').trim();
+                var unknownString = speechResults.transcript.trim();
 
 
                 Homey.manager('speech-output').say("Sorry, I don't know what you mean with " + unknownString);
