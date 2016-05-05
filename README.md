@@ -10,14 +10,15 @@ This release supports 2 drivers: 1) PHT - Plex Home Theater and 2) ChromeCast (o
 
 * 1) Install the App on your Homey.
 * 2) Configure your Plex Media Server to allow remote access
-* 3) Open een browser window en log into plex.tv
-* 4) Go to the Homey page - Settings - Plex (left column)
-* 5) Click the 'Start Pin Process' button, remember the PIN and go to plex.tv/pin to enter it.
-* 6) Go back to the Homey settings page. You should see your available PMS server, click select button next to it.
-* 7) The Homey Plex app will now analyze your media and cache all relevant media keys for speech recognition (this might take a minute)
-* 8) Now go to the 'Devices' page on the Homey and add a device in a Zone. Select Plex, your needed Driver and pick your device.
-* 9) Homey Plex should now be ready to receive voice commands!
-* 10) Enjoy watching.
+* 3) Goto Plex.tv -> Settings -> Server (advanced view) -> Network and make sure the 'Secure Connections' dropdown is set to 'Preferred' and NOT required.
+* 4) Open een browser window en log into plex.tv
+* 5) Go to the Homey page - Settings - Plex (left column)
+* 6) Click the 'Start Pin Process' button, remember the PIN and go to plex.tv/pin to enter it.
+* 7) Go back to the Homey settings page. You should see your available PMS server, click select button next to it.
+* 8) The Homey Plex app will now analyze your media and cache all relevant media keys for speech recognition (this might take a minute)
+* 9) Now go to the 'Devices' page on the Homey and add a device in a Zone. Select Plex, your needed Driver and pick your device.
+* 10) Homey Plex should now be ready to receive voice commands!
+* 11) Enjoy watching.
 
 # Flow support
 
