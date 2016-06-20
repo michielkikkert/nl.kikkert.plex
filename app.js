@@ -20,6 +20,9 @@ var speechTriggers = [];
 var MININDEXSCORE = 0.4;
 var machineId = null;
 var activeProfile = 1;
+var pinTries = 0;
+var cpuwarns = 0;
+var logs = [];
 
 var mediaCache = {
     updated: null,
@@ -42,22 +45,58 @@ var defaultPlexSettings = {
         "server": {
             "hostname": null
         }
+    },
+    "meta" : {
+        "media" : null,
+        "latestmovies" :[],
+        "latestseries" :[],
     }
 }
 
 var settings = null;
 var updating = false;
 var autoUpdateTimer = null;
+var reset = false;
 
 var REMOTE_MODE = plexConfig.remoteMode;
+
 var store = function(plex){
     Homey.manager('settings').set('plex', plex);
+    Homey.manager('api').realtime('settings_update', plex);
 }
-
 
 var self = {};
 
+var realtime = self.realtime = function(l){
+    logs.push(arguments);
+
+    if(logs.length > 100){
+        logs.shift();
+    }
+
+    Homey.manager('api').realtime('console_log', arguments);
+}
+
+Homey.on('cpuwarn', function(warning){
+    console.log("CPU WARNING", warning);
+    cpuwarns = warning.count;
+})
+
+// console.log = function(l){
+//     logs.push(l);    
+//     if(logs.length > 100){
+//         logs.shift();
+//     }
+//     Homey.manager('api').realtime('console_log', l);
+//     process.stdout.write(l + '\n');
+// }
+
 self.init = function() {
+
+    if(reset){
+        reset = false;
+        self.resetSettings();
+    }
 
     clearTimeout(autoUpdateTimer);
 
@@ -68,10 +107,13 @@ self.init = function() {
     } 
 
     settings = Homey.manager('settings').get('plex');
+    settings.meta = {
+        media: {}
+    }
 
     self.setPlexTv();
 
-    if (!settings.selected.server.hostname) {
+    if (!settings.selected.server.hostname || !settings.plexTv.token) {
         settings.hasSetup = false;
     } else {
         settings.hasSetup = true;
@@ -82,26 +124,46 @@ self.init = function() {
 
         // is the plexserver available?
         self.isServerAvailable().then(function() {
-            Homey.log("server is available");
+            console.log("server is available");realtime("server is available");
             updating = true;
             // Prime the media cache.
             self.getMedia().then(function(media) {
-                Homey.log('getMedia', media.items.length);
+                console.log('getMedia', media.items.length);realtime('getMedia', media.items.length);
                 updating = false;
+                console.log('warns:', cpuwarns);realtime('warns:', cpuwarns);
             });
 
             self.autoUpdate();
 
         }, function() {
-            Homey.log("Plex server is NOT available");
+            console.log("Plex server is NOT available");realtime("Plex server is NOT available");
         })
 
     } else {
-
-        Homey.log("Plex app doesn't have any setup yet..Visit the settings page on your Homey!");
-    
+        console.log("Plex app doesn't have any setup yet..Visit the settings page on your Homey!");
+        realtime("Plex app doesn't have any setup yet..Visit the settings page on your Homey!");
     }
     
+}
+
+self.updateInstalledPlayers = function(callback){
+    settings.installedPlayers = [];
+    plexConfig.installedDrivers.forEach(function(driverKey){
+        var curDevices = Homey.manager('drivers').getDriver(driverKey).api.getInstalledPlayers();
+        curDevices.forEach(function(device){
+            settings.installedPlayers.push(device);
+        })
+    })
+
+    store(settings);
+
+    callback(settings.installedPlayers);
+}
+
+self.getLogs = function(callback){
+    
+    if(callback){callback(logs)}
+    return logs;
 }
 
 self.autoUpdate = function(){
@@ -183,20 +245,42 @@ self.setPlexTv = function() {
     plexTv = new PlexAPI(self.getApiConfig(settings.plexTv));
 }
 
-self.getPlexPin = function(callback) {
+self.initPinProcess = function(callback){
+    console.log('initPinProcess');
+    self.getPlexPin(function(oPin){
+       
+        Homey.manager('api').realtime('pin_received', oPin.code);
+        
+        self.checkPlexPin(oPin,function(valid){
+            if(valid){
+                console.log('Valid Plex Token found');
+                realtime('Valid Plex Token found');
+            } else {
+                console.log('No valid Plex Token found yet');
+                realtime('No valid Plex Token found yet');
+            }
+        })
+    })
 
+    callback("started");
+}
+
+self.getPlexPin = function(callback) {
+    console.log("getPlexPin()");
     plexTv.postQuery("/pins.xml").then(function(result) {
         callback(result.pin);
     })
 }
 
-self.checkPlexPin = function(pinId, callback) {
+self.checkPlexPin = function(oPin, callback) {
 
-    Homey.log("checkPlexPin", pinId);
+    console.log("checkPlexPin");
+    var pinId = oPin.id[0]._;
+    pinTries++;
+
+    Homey.manager('api').realtime('pin_check', { 'tries': pinTries});
 
     plexTv.query("/pins/" + pinId + ".xml").then(function(result) {
-
-        // Homey.log(result);
 
         var valid = false;
         var token = result.pin.auth_token[0];
@@ -204,17 +288,31 @@ self.checkPlexPin = function(pinId, callback) {
         if (token && typeof token == 'string' && token !== '') {
             // We have a token! Now let's check if it belongs to the initial ID
 
-            Homey.log("TOKEN FOUND", token);
+            console.log("TOKEN FOUND", token);
 
             if (result.pin.id[0]._ == pinId) {
                 self.setPlexTvToken(token);
                 //Re-init plexTv API
                 self.setPlexTv();
                 valid = true;
-                Homey.log("Found valid plex.tv token", token);
+                pinTries = 0;
+                console.log("Found valid plex.tv token", token);
+                realtime("Found valid plex.tv token", token);
+                self.getPlexServers(function(servers){
+                    Homey.manager('api').realtime('servers_updated', { 'servers': servers});
+                })
+                Homey.manager('api').realtime('pin_process_success', true);
             }
+
         } else {
-            Homey.log("Plex token not found (yet)................");
+            
+            console.log("TOKEN NOT FOUND", pinTries);
+            if(pinTries < plexConfig.maxPinTries){
+                setTimeout(function(){self.checkPlexPin(oPin, callback);}, plexConfig.pinTimeOut)
+            } else {
+                console.log("max pin tries reached without result");
+                Homey.manager('api').realtime('pin_process_success', false);
+            }
         }
 
         callback(valid);
@@ -228,29 +326,48 @@ self.setPlexTvToken = function(token) {
     }
 }
 
-self.storeServers = function(serverObject) {
-    // Homey.log("storeServers", serverObject);
-    
-    var ownedServers = [];
+self.storeServers = function(servers) {
 
-    for (var a = 0; a < serverObject.length; a++) {
+    // console.log("storeServers begin");
+    // console.log(servers);
+    // console.log(settings.servers);
+    // console.log("storeServers end");
+
+    var oExisting = {};
+    
+    var tempExistingServers = function(){
         
-        var currentServer = serverObject[a];
-        
-        if (currentServer.attributes.owned == "1") {
-            ownedServers.push(currentServer);
-        }
+        settings.servers.forEach(function(existingServer){
+            oExisting[existingServer.machineIdentifier] = existingServer;
+            existingServer.connections.forEach(function(existingConnection){
+                oExisting[existingServer.machineIdentifier + "|" + existingConnection.address + "|" + existingConnection.port + "|" + existingConnection.scheme] = existingConnection;
+            })
+        })
     }
 
-    settings.servers = ownedServers;
+    tempExistingServers();
+
+    servers.forEach(function(server){
+        if(typeof oExisting[server.machineIdentifier] == "undefined"){
+            settings.servers.push(server);
+        } else { // existing server, check connections
+            server.connections.forEach(function(serverConnection){
+                if(typeof oExisting[server.machineIdentifier + "|" + serverConnection.address + "|" + serverConnection.port + "|" + serverConnection.scheme] == "undefined"){
+                    server.connections.push(serverConnection);
+                }
+            })
+        }
+    })
+
+    settings.servers = servers;
     store(settings);
 
     // // First unregister media triggers
     // Homey.manager('speech-input').removeTrigger(serverTriggerIds, function(err) {
     //     if (!err) {
-    //         Homey.log("Unregistering server triggers done");
+    //         console.log("Unregistering server triggers done");
     //     } else {
-    //         Homey.log(err);
+    //         console.log(err);
     //     }
 
 
@@ -273,15 +390,15 @@ self.storeServers = function(serverObject) {
     //             }
     //         }
 
-    //         Homey.log(triggerObject);
+    //         console.log(triggerObject);
 
     //         Homey.manager('speech-input').addTrigger(triggerObject, function(err, result) {
-    //             // Homey.log('args', arguments);
+    //             // console.log('args', arguments);
     //             if (!err) {
-    //                 Homey.log("Registering server trigger done");
+    //                 console.log("Registering server trigger done");
     //                 serverTriggerIds.push(id);
     //             } else {
-    //                 Homey.log(err);
+    //                 console.log(err);
     //             }
     //         });
 
@@ -298,56 +415,64 @@ self.getSettings = function(key) {
 self.resetSettings = function() {
     store(defaultPlexSettings);
     settings = null;
-    self.init();
+    self.init(false);
 }
 
 self.getPlexServers = function(callback) {
+    
     plexTv.query("/pms/servers.xml").then(function(result) {
-        // Homey.log(result.MediaContainer.Server);
-        callback(result.MediaContainer.Server);
-        self.storeServers(result.MediaContainer.Server);
+        var servers = self.makeServersArray(result.MediaContainer.Server);
+        callback(servers);
+        self.storeServers(servers);
     }, function() {
-        Homey.log("Failed to get servers from Plex.tv");
+        console.log("Failed to get servers from Plex.tv");
     })
 }
 
 self.getPlexPlayers = function(callback) {  // Used by Driver
 
     plexTv.query("/devices.xml").then(function(result) {
-        // Homey.log(result.MediaContainer);
         callback(result.MediaContainer);
         self.storePlayers(result.MediaContainer.Device);
     }, function() {
-        Homey.log("Failed to get players from Plex.tv");
+        console.log("Failed to get players from Plex.tv");
+        realtime("Failed to get players from Plex.tv");
         callback(false);
     })
 }
 
-self.isServerAvailable = function() {
+self.isServerAvailable = function(callback) {
     var deferred = Q.defer();
 
     if (self.setPlexServer()) {
 
         plexServer.query("/").then(function(result) {
-            Homey.log("Media server found: " + result.friendlyName);
+            console.log("Media server found: " + result.friendlyName);
+            realtime("Media server found: " + result.friendlyName);
             if (result.machineIdentifier != "") {
-                Homey.log("Machine identifier found: " + result.machineIdentifier);
+                console.log("Machine identifier found: " + result.machineIdentifier);
+                realtime("Machine identifier found: " + result.machineIdentifier);
                 self.machineId = result.machineIdentifier;
+                Homey.manager('api').realtime('selected_server_available', true);
+                if(callback){ callback(true) };
                 deferred.resolve(true);
             }
 
         }, function(err) {
-            Homey.log("Could not connect to Plex Media Server: " + err);
+            console.log("Could not connect to Plex Media Server: " + err);
+            realtime("Could not connect to Plex Media Server: " + err);
+            Homey.manager('api').realtime('selected_server_available', false);
+            if(callback){ callback(false) };
             deferred.reject();
         });
 
     } else {
-
         deferred.reject("No plex servers available");
+        if(callback){ callback(false) };
+        Homey.manager('api').realtime('selected_server_available', false);
     }
 
     return deferred.promise;
-
 }
 
 self.getPlexToken = function(api, config) {
@@ -367,25 +492,19 @@ self.getPlexToken = function(api, config) {
 
 self.setSelectedDevice = function(args) {
 
-    Homey.log("setSelectedDevice", args);
+    console.log("setSelectedDevice", args);
+    realtime("setSelectedDevice", args);
 
     var device = args.device;
-
-    // if (args.type == "player") {
-    //     settings.selected.player = self.getPlayerTemplate(device);
-
-    // };
 
     if (args.type == "server") {
         settings.selected.server = self.getServerTemplate(device);
         self.updateMediaCache();
-
-    };
-
-    if (settings.selected.server.hostname) {
-        settings.hasSetup = true;
-    } else {
-        settings.hasSetup = false;
+        if (settings.selected.server.hostname) {
+            settings.hasSetup = true;
+        } else {
+            settings.hasSetup = false;
+        }
     }
 
     store(settings);
@@ -394,21 +513,49 @@ self.setSelectedDevice = function(args) {
 
 }
 
-self.getServerTemplate = function(device) {
+self.makeServersArray = function(servers){
+    
+    var aServers = [];
+    var allowShared = plexConfig.allowSharedServers;
 
-    // TODO: let the user make a choice to access using the remote IP or the local network (for owned servers)
+    servers.forEach(function(server){
+        var curServer = {};
+        
+        curServer.name              = server.attributes.name;
+        curServer.machineIdentifier = server.attributes.machineIdentifier;
+        curServer.owned             = (server.attributes.owned == "1") ? true : false;
+        curServer.accessToken       = server.attributes.accessToken;
+        curServer.connections       = [];
 
-    var local = device.attributes.localAddresses.split(',')[0];
-    var hostname = (device.attributes.owned === "1") ? local : device.attributes.host;
+        curServer.connections.push({"address": server.attributes.address, "port": server.attributes.port, "scheme": server.attributes.scheme, "local": false});
+        
+        if(curServer.owned){
+            server.attributes.localAddresses.split(',').forEach(function(localserver){
+                curServer.connections.push({"address": localserver, "port": plexConfig.defaultPort, "scheme": server.attributes.scheme, "local": true})
+            });
+        } else {
+            curServer.sourceTitle = server.attributes.sourceTitle || "";
+            curServer.ownerId = server.attributes.ownerId || "";
+
+        }
+
+        aServers.push(curServer);
+    })
+
+    return aServers;
+
+}
+
+self.getServerTemplate = function(server) {
 
     return {
-        "name": device.attributes.name,
-        "machineIdentifier": device.attributes.machineIdentifier,
-        "token": device.attributes.accessToken,
-        "hostname": hostname,
-        "port": device.attributes.port,
-        "owned": device.attributes.owned,
-        "local": local
+        "name": server.name,
+        "machineIdentifier": server.machineIdentifier,
+        "token": server.accessToken || null,
+        "hostname": server.address,
+        "port": server.port,
+        "owned": server.owned,
+        "local": server.local
     }
 }
 
@@ -419,11 +566,12 @@ self.refreshMediaServer = function() {
 
     plexServer.query("/library/sections/all/refresh").then(function(result) {
 
-        Homey.log("Fired PMS update request");
+        console.log("Fired PMS update request");
+        realtime("Fired PMS update request");
 
     }, function(err) {
 
-        Homey.log(err);
+        console.log(err);
 
     });
 
@@ -443,6 +591,7 @@ self.updateMediaCache = function() {
 
     var outerPromise = Q.defer();
     var itemPromises = [];
+    Homey.manager('api').realtime('media_update', true);
 
     // Empty mediaCache:
     mediaCache.items.length = 0;
@@ -458,13 +607,14 @@ self.updateMediaCache = function() {
     // Make sure we have the most recent media server
     self.setPlexServer();
 
-    Homey.log("Updating media cache.........");
+    console.log("Updating media cache.........");
+    realtime("Updating media cache.........");
 
     self.unRegisterMediaTriggers(function(err) {
 
 
         if (err) {
-            Homey.log("unRegisterMediaTriggers ERROR", err);
+            console.log("unRegisterMediaTriggers ERROR", err);
         }
 
         // clear mediaTriggerIds
@@ -488,24 +638,33 @@ self.updateMediaCache = function() {
 
         Q.allSettled(itemPromises).then(
             function(result) {
-                Homey.log("Media Cache Updated");
+                console.log("Media Cache Updated");
+                realtime("Media Cache Updated");
                 mediaCache.updated = +new Date();
+                settings.meta.media.updated = mediaCache.updated;
+                settings.meta.media.triggers = speechTriggers.length;
+                settings.meta.media.latestmovies = mediaCache.recent.slice(0,5);
+                store(settings);
                 Homey.manager('speech-input').addTrigger(speechTriggers, function(err, result) {
-                    // Homey.log('args', arguments);
                     if (!err) {
-                        Homey.log("Registering media triggers done");
-                        Homey.log("Plex ready for commands..");
+                        console.log("Registering "+ speechTriggers.length +" media triggers done");
+                        realtime("Registering "+ speechTriggers.length +" media triggers done");
+                        console.log("Plex ready for commands..");
+                        realtime("Plex ready for commands..");
+                        Homey.manager('api').realtime('media_update', false);
+
+                        outerPromise.resolve({
+                            media: mediaCache,
+                            fromcache: true
+                        });
+
                     } else {
-                        Homey.log(err);
+                        console.log(err);
                     }
-                });
-                outerPromise.resolve({
-                    media: mediaCache,
-                    fromcache: true
                 });
             },
             function(err) {
-                Homey.log(err);
+                console.log(err);
                 outerPromise.reject(err);
             }
         );
@@ -522,18 +681,20 @@ self.cacheMediaByType = function(type) {
 
 
         var deferred = Q.defer();
-
+        settings.meta.media[type] = 0;
         // Check if type is correct
         if (typeof mediaTypes[type] == 'undefined') {
-            Homey.log("Unknown media type: " + type);
+            console.log("Unknown media type: " + type);
             return deferred.reject();
         }
 
         plexServer.query("/library/all?type=" + mediaTypes[type]).then(function(result) {
-            Homey.log("Found " + result._children.length + " media items of type: " + type);
-            Homey.log("Adding " + type + " to cache.......");
+            console.log("Found " + result._children.length + " media items of type: " + type);
+            realtime("Found " + result._children.length + " media items of type: " + type);
+            console.log("Adding " + type + " to cache.......");
+            realtime("Adding " + type + " to cache.......");
 
-            var count = 0;
+            settings.meta.media[type] = result._children.length;
 
             result._children.forEach(function(mediaItem) {
                 if (mediaItem._elementType == 'Video') {
@@ -553,7 +714,7 @@ self.cacheMediaByType = function(type) {
             return deferred.resolve();
 
         }, function(err) {
-            Homey.log(err);
+            console.log(err);
             return deferred.reject({});
         });
 
@@ -564,10 +725,14 @@ self.cacheMediaByType = function(type) {
 
         var deferred = Q.defer();
         var type = 'ondeck';
+        settings.meta.media[type] = 0;
 
         plexServer.query("/library/onDeck").then(function(result) {
-            Homey.log("Found " + result._children.length + " On Deck items");
-            Homey.log("Adding ondeck items to cache.......");
+            console.log("Found " + result._children.length + " On Deck items");
+            realtime("Found " + result._children.length + " On Deck items");
+            console.log("Adding ondeck items to cache.......");
+            realtime("Adding ondeck items to cache.......");
+            settings.meta.media[type] = result._children.length;
             result._children.forEach(function(mediaItem) {
                 if (mediaItem._elementType == 'Video') {
                     var cacheItem = self.createMediaCacheItem(mediaItem);
@@ -578,7 +743,7 @@ self.cacheMediaByType = function(type) {
             return deferred.resolve();
 
         }, function(err) {
-            Homey.log(err);
+            console.log(err);
             return deferred.reject({});
         });
 
@@ -589,10 +754,14 @@ self.cacheMediaByType = function(type) {
 
         var deferred = Q.defer();
         var type = 'recent';
+        settings.meta.media[type] = 0;
 
         plexServer.query("/library/recentlyAdded").then(function(result) {
-            Homey.log("Found " + result._children.length + " Recent items");
-            Homey.log("Adding recent items to cache.......");
+            console.log("Found " + result._children.length + " Recent items");
+            realtime("Found " + result._children.length + " Recent items");
+            console.log("Adding recent items to cache.......");
+            realtime("Adding recent items to cache.......");
+            settings.meta.media[type] = result._children.length;
             result._children.forEach(function(mediaItem) {
                 if (mediaItem._elementType == 'Video') {
                     var cacheItem = self.createMediaCacheItem(mediaItem);
@@ -603,7 +772,7 @@ self.cacheMediaByType = function(type) {
             return deferred.resolve();
 
         }, function(err) {
-            Homey.log(err);
+            console.log(err);
             return deferred.reject({});
         });
 
@@ -611,6 +780,8 @@ self.cacheMediaByType = function(type) {
     }
 
 self.addToIndexer = function(indexType, item) {
+
+    // console.log("addToIndexer", item.key);
 
     if (typeof indexers[indexType] === 'undefined') {
         indexers[indexType] = new lunr(function() {
@@ -733,9 +904,9 @@ self.unRegisterMediaTriggers = function(callback) {
 
     Homey.manager('speech-input').removeTrigger(mediaTriggerIds, function(err) {
         if (!err) {
-            Homey.log("Unregistering media triggers done");
+            console.log("Unregistering media triggers done");
         } else {
-            Homey.log(err);
+            console.log(err);
         }
 
         if (typeof callback == 'function') {
@@ -747,6 +918,8 @@ self.unRegisterMediaTriggers = function(callback) {
 
 
 self.createMediaCacheItem = function(mediaChild) {
+
+    console.log("createMediaCacheItem", mediaChild.type, mediaChild.key); // DO NOT REMOVE THIS CONSOLE LINE!
 
     var cacheTemplate = {
         "machineIdentifier": settings.selected.server.machineIdentifier,
@@ -788,15 +961,15 @@ self.getMedia = function() {
 
     var deferred = Q.defer();
 
-    Homey.log("getMedia()");
-    Homey.log("cache size: " + mediaCache.items.length);
+    console.log("getMedia()");
+    console.log("cache size: " + mediaCache.items.length);
 
     if (mediaCache.items.length > 0) {
-        Homey.log("Media from cache");
+        console.log("Media from cache");
         deferred.resolve(mediaCache);
     } else {
         self.updateMediaCache().then(function(result) {
-            Homey.log("Media from updated cache");
+            console.log("Media from updated cache");
             deferred.resolve(result.media);
         });
     }
@@ -806,13 +979,13 @@ self.getMedia = function() {
 
 self.getSessions = function() {
 
-    Homey.log("getSessions..");
+    console.log("getSessions..");
 
     var deferred = Q.defer();
 
     if(self.setPlexServer()){
         plexServer.query("/status/sessions").then(function(sessions) {
-            // Homey.log(sessions);
+            // console.log(sessions);
             var response = [];
 
             sessions._children.forEach(function(session) {
@@ -843,7 +1016,8 @@ self.processConversation = function(speechObject) {
         return;
     }
 
-    Homey.log('speechObject', speechObject);
+    console.log('speechObject', speechObject);
+    realtime('speechObject', speechObject);
 
     // parse the speech object 
     var speechResults = {
@@ -881,7 +1055,7 @@ self.processConversation = function(speechObject) {
 
     }
 
-    Homey.log("speechResults", speechResults);
+    console.log("speechResults", speechResults);
 
 
     // Go through the triggers and find corresponding items:
@@ -947,7 +1121,7 @@ self.processConversation = function(speechObject) {
 
         if (speechResults.commands.indexOf('currentlyplaying') > -1) {
             
-            Homey.log("currentlyplaying", speechResults);
+            console.log("currentlyplaying", speechResults);
 
             // TODO:
             // Move these driver specific tests to the drivers while exposing the logic in app.js (API)
@@ -955,7 +1129,7 @@ self.processConversation = function(speechObject) {
             if(speechResults.devices[0].type == 'pht'){
                 self.getSessions().then(function(current) {
 
-                    Homey.log("Active playing session found", current);
+                    console.log("Active playing session found", current);
 
                     var friendly = "";
                     var mediaItem = self.createMediaCacheItem(current[0]);
@@ -978,7 +1152,7 @@ self.processConversation = function(speechObject) {
 
             if(speechResults.devices[0].type == 'chromecast'){
 
-                Homey.log("chromecast last session");
+                console.log("chromecast last session");
 
                 var friendly = "";
                 var mediaItem = Homey.manager('drivers').getDriver('chromecast').api.getLastSession();
@@ -1021,10 +1195,10 @@ self.processConversation = function(speechObject) {
                 self.getSessions().then(function(current) {
 
 
-                    // Homey.log("Active playing session found", current);
+                    // console.log("Active playing session found", current);
 
                     if (current.length == 0) {
-                        Homey.log("No active player session found");
+                        console.log("No active player session found");
                         Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
                         return;
                     }
@@ -1032,7 +1206,7 @@ self.processConversation = function(speechObject) {
                     var mediaItem = self.createMediaCacheItem(current[0]);
 
 
-                    Homey.log("mediaItem", mediaItem);
+                    console.log("mediaItem", mediaItem);
 
                     if (mediaItem.type == 'episode') {
 
@@ -1060,15 +1234,15 @@ self.processConversation = function(speechObject) {
 
             if (speechResults.commands.indexOf('watchpreviousepisode') > -1) {
 
-                Homey.log("COMMAND: watchpreviousepisode triggered!");
+                console.log("COMMAND: watchpreviousepisode triggered!");
 
                 self.getSessions().then(function(current) {
 
 
-                    Homey.log("Active playing session found", current);
+                    console.log("Active playing session found", current);
 
                     if (current.length == 0) {
-                        Homey.log("No active player session found");
+                        console.log("No active player session found");
                         Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
                         return;
                     }
@@ -1076,7 +1250,7 @@ self.processConversation = function(speechObject) {
                     var mediaItem = self.createMediaCacheItem(current[0]);
 
 
-                    Homey.log("mediaItem", mediaItem);
+                    console.log("mediaItem", mediaItem);
 
                     if (mediaItem.type == 'episode') {
 
@@ -1100,7 +1274,7 @@ self.processConversation = function(speechObject) {
                     }
 
                 }, function(err){
-                    Homey.log("ERROR: watchpreviousepisode", err);
+                    console.log("ERROR: watchpreviousepisode", err);
                 })
             }
 
@@ -1124,9 +1298,9 @@ self.processConversation = function(speechObject) {
                 var mediaItem = self.keyToMediaItem(speechMedia[0].ref);
 
                 // There can be only one!
-                Homey.log("Found single :" + mediaItem.type);
-                Homey.log("Going to try to play: ", mediaItem.title);
-                Homey.log("Waiting for player.......");
+                console.log("Found single :" + mediaItem.type);
+                console.log("Going to try to play: ", mediaItem.title);
+                console.log("Waiting for player.......");
 
                 self.player({mediaItem: mediaItem, command: 'playItem', devices: speechResults.devices});
 
@@ -1134,15 +1308,15 @@ self.processConversation = function(speechObject) {
 
             } else if (speechMediaLength > 1) { // Multiple results on speech match
 
-                Homey.log("More than 1 result, namely: " + speechMediaLength);
+                console.log("More than 1 result, namely: " + speechMediaLength);
 
                 var longestItems = self.getLongestItemsInSpeechMedia(speechMedia);
 
-                Homey.log("After filter for longest items", longestItems.length);
+                console.log("After filter for longest items", longestItems.length);
 
                 if (longestItems.length == 1) {
                     
-                    Homey.log("Found single longest item, assuming best match");
+                    console.log("Found single longest item, assuming best match");
                     var mediaItem = self.keyToMediaItem(longestItems[0].ref);
                     self.player({mediaItem: mediaItem, command: 'playItem', devices: speechResults.devices});
                     return;
@@ -1152,7 +1326,7 @@ self.processConversation = function(speechObject) {
                     // Convert found speech keys to actual media items:
                     var mediaItemSelection = self.indexToMediaArray(longestItems, mediaCache.items);
 
-                    // Homey.log("mediaItemSelection", mediaItemSelection);
+                    // console.log("mediaItemSelection", mediaItemSelection);
 
                     // Break up items into series and movies:
                     var seriesMedia = self.filterMediaItemsBy("type", "episode", mediaItemSelection)
@@ -1164,27 +1338,27 @@ self.processConversation = function(speechObject) {
                     // Check for possible single results (shortcut as if we do have a single result, we can immediately play without further processing):
                     if (lastType == 'movie' && moviesMedia.length == 1) {
 
-                        Homey.log("Found speech type movie, with a single speech result -> playing!", moviesMedia[0]);
+                        console.log("Found speech type movie, with a single speech result -> playing!", moviesMedia[0]);
                         self.player({mediaItem: moviesMedia[0], command: 'playItem', devices: speechResults.devices});
                         return;
 
                     }
 
                     if (lastType == 'episode' && seriesMedia.length == 1) {
-                        Homey.log("Found speech type series, with a single speech result -> playing!", seriesMedia[0]);
+                        console.log("Found speech type series, with a single speech result -> playing!", seriesMedia[0]);
                         self.player({mediaItem: seriesMedia[0], command: 'playItem', devices: speechResults.devices});
                         return;
                     }
 
                     if (speechResults.commands.indexOf('random') > -1) {
                         if (lastType == 'episode') {
-                            Homey.log("Playing random episode");
+                            console.log("Playing random episode");
                             self.player({mediaItem: seriesMedia[Math.floor(Math.random() * seriesMedia.length)], command: 'playItem', devices: speechResults.devices});
                             return;
                         }
 
                         if (lastType == 'movie') {
-                            Homey.log("Playing random movie");
+                            console.log("Playing random movie");
                             self.player({mediaItem: moviesMedia[Math.floor(Math.random() * moviesMedia.length)], command: 'playItem', devices: speechResults.devices});
                             return;
                         }
@@ -1206,7 +1380,7 @@ self.processConversation = function(speechObject) {
                         // Ask user for type
                         self.askQuestion("Would you like to watch a movie or a series?", ['movie', 'series']).then(function(result) {
 
-                            Homey.log("Valid response from askQuestion", result);
+                            console.log("Valid response from askQuestion", result);
 
                             if (result == 'abort') {
                                 return;
@@ -1224,16 +1398,16 @@ self.processConversation = function(speechObject) {
 
                         }, function(err) {
 
-                            Homey.log("Invalid response from askQuestion", err);
+                            console.log("Invalid response from askQuestion", err);
                             Homey.manager('speech-output').say("Sorry... I didn't understand " + err + ". Please try again.");
 
                         })
 
                     } else {
 
-                        Homey.log("lastType", lastType);
-                        // Homey.log("moviesMedia", moviesMedia);
-                        // Homey.log("seriesMedia", seriesMedia);
+                        console.log("lastType", lastType);
+                        // console.log("moviesMedia", moviesMedia);
+                        // console.log("seriesMedia", seriesMedia);
 
                         if (lastType == 'movie') {
                             self.getSingleResult(moviesMedia, speechResults);
@@ -1252,7 +1426,7 @@ self.processConversation = function(speechObject) {
             // doesn't exist in the Plex lib.
 
             if (speechMediaLength == 0 && speechResults.types.length == 0) {
-                Homey.log("speech-output", "What would you like to watch?");
+                console.log("speech-output", "What would you like to watch?");
 
                 // Pretty much unknown what the user wants. I have a 'watch' command, but no type (movie|episode) and no title.
                 // We need to abort here.
@@ -1261,7 +1435,7 @@ self.processConversation = function(speechObject) {
 
 
                 Homey.manager('speech-output').say("Sorry, I don't know what you mean with " + unknownString);
-                Homey.log("SAY", "Sorry, I don't know what you mean with " + unknownString)
+                console.log("SAY", "Sorry, I don't know what you mean with " + unknownString)
                 return;
             }
 
@@ -1271,7 +1445,7 @@ self.processConversation = function(speechObject) {
             // TODO: ask for title of type
 
             // if (speechMediaLength == 0 && speechResults.types.length == 1) {
-            //     Homey.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
+            //     console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
             //     Homey.manager('speech-output').say("What  " + speechResults.types[0] + " would you like to watch?"); // ask
             // }
         }
@@ -1283,7 +1457,7 @@ self.getSingleResult = function(selection, speechResults) {
     // If we got here, we HAVE to get to a single result, otherwise we can only abort.
     // We are expecting a selection (1 to many), all of the same type (movie or series). Speech matching might already have yielded a single result.
 
-    Homey.log("GOING TO getSingleResult() with number of items", selection.length);
+    console.log("GOING TO getSingleResult() with number of items", selection.length);
 
     var zone = (speechResults.zones.length > 0) ? speechResults.zones[0] : 'default';
     
@@ -1293,10 +1467,10 @@ self.getSingleResult = function(selection, speechResults) {
     var titles = [];
     var secondaryTitles = [];
 
-    // Homey.log("getSingleResult", selection);
+    // console.log("getSingleResult", selection);
 
     if (selection.length == 0) {
-        Homey.log("Something is wrong, probably failed to register the speech triggers correctly");
+        console.log("Something is wrong, probably failed to register the speech triggers correctly");
         return;
     }
 
@@ -1306,23 +1480,23 @@ self.getSingleResult = function(selection, speechResults) {
     }
 
     var currentType = selection[0].type;
-    // Homey.log("currentType", currentType);
+    // console.log("currentType", currentType);
 
     if (currentType == 'movie') {
         // Something like transformers, transformers dark of the moon and transformers revenge of the fallen
 
-        // Homey.log("Found " + numResults + " movies, with the title " + speechMatch);
+        // console.log("Found " + numResults + " movies, with the title " + speechMatch);
 
         if (numResults < 5) {
             titles = self.getMetaFromMedia("title", selection);
-            // Homey.log(titles);
+            // console.log(titles);
         }
 
         // fetch seconday titles for allowed speech result:
         secondaryTitles = self.getMetaFromMedia("secondaryTitle", selection);
         secondaryTitles.push(speechMatch);
 
-        // Homey.log("secondaryTitles", secondaryTitles);
+        // console.log("secondaryTitles", secondaryTitles);
 
         var question = "I found " + numResults + " matching results for " + speechMatch + ". Which would you like to watch? ";
         question += secondaryTitles.join(",");
@@ -1331,7 +1505,7 @@ self.getSingleResult = function(selection, speechResults) {
 
         self.askQuestion(question, titles.concat(secondaryTitles)).then(function(result) {
 
-            // Homey.log("MATCH", result);
+            // console.log("MATCH", result);
 
             var selected = self.filterMediaItemsBy("title", result, selection);
 
@@ -1339,13 +1513,13 @@ self.getSingleResult = function(selection, speechResults) {
                 selected = self.filterMediaItemsBy("secondaryTitle", result, selection);
             }
 
-            Homey.log("selected", selected);
+            console.log("selected", selected);
             self.player({mediaItem: selected[0], command: 'playItem', devices: speechResults.devices});
             return true;
 
         }, function(err) {
 
-            Homey.log("FAIL:", err);
+            console.log("FAIL:", err);
             Homey.manager('speech-output').say("Sorry, I couldn't find a match for " + result + ". Please start over");
             return false;
 
@@ -1354,14 +1528,14 @@ self.getSingleResult = function(selection, speechResults) {
 
     if (currentType == 'episode') {
 
-        Homey.log("Found " + numResults + " episodes, with the title " + speechMatch);
+        console.log("Found " + numResults + " episodes, with the title " + speechMatch);
 
         // Did we maybe have another clue in the speech match commands?
         if (speechResults.commands.indexOf('latest') > -1) { // So user wants to watch the latest episode, but it was somehow not on deck?
 
             var newestEppie = self.getNewestEpisode(selection);
 
-            // Homey.log("newestEppie", newestEppie);
+            // console.log("newestEppie", newestEppie);
 
             if (newestEppie) {
                 Homey.manager('speech-output').say("Okay, playing the most recent episode of " + speechMatch);
@@ -1376,7 +1550,7 @@ self.getSingleResult = function(selection, speechResults) {
 
             var firstEppie = self.getLowestEpisode(selection);
 
-            // Homey.log("firstEppie", firstEppie);
+            // console.log("firstEppie", firstEppie);
 
             if (firstEppie) {
                 Homey.manager('speech-output').say("Okay, playing the oldest episode of " + speechMatch);
@@ -1396,7 +1570,7 @@ self.getSingleResult = function(selection, speechResults) {
 
         // we have a selection of mediaItems here. Let's check any match the mediaItems in ondeck:
         episodesOnDeck = self.getMatchingItems(selection, mediaCache.ondeck);
-        // Homey.log("episodesOnDeck", episodesOnDeck);
+        // console.log("episodesOnDeck", episodesOnDeck);
 
         if (episodesOnDeck.length == 1) { // Yeah! 1 result on deck. Let's play it.
             self.player({mediaItem: episodesOnDeck[0], command: 'playItem', devices: speechResults.devices});
@@ -1414,7 +1588,7 @@ self.getSingleResult = function(selection, speechResults) {
 
         // No match yet.. Let's check recently added:
         var episodesRecent = self.getMatchingItems(selection, mediaCache.recent);
-        // Homey.log("episodesRecent", episodesRecent);
+        // console.log("episodesRecent", episodesRecent);
 
         if (episodesRecent.length == 1) { // Yeah! 1 result on deck. Let's play it.
             self.player({mediaItem: episodesRecent[0], command: 'playItem', devices: speechResults.devices});
@@ -1433,11 +1607,7 @@ self.getSingleResult = function(selection, speechResults) {
 
         // Okay, this is the last stop. We still haven't found what we're looking for (a single episode to play)
         // Let's put the indexers to work.
-
-
-
-        Homey.log("LAST STOP: ", selection.length, "episodes left");
-        // Homey.log("selection", selection);
+        console.log("LAST STOP: ", selection.length, "episodes left");
 
         // Let's check the indexer result for 'never watched'
         var neverWatchedItems = indexers['neverwatched'].search(speechMatch);
@@ -1462,16 +1632,15 @@ self.getSingleResult = function(selection, speechResults) {
         }
 
         // Okay, we are still not successful. We need to try to get a match by asking more information I guess..
-
         var question = "Sorry, I do not have enough information to find what you want to watch. Do you have any more information on what episode of " + speechMatch + " you want to watch?";
 
         self.askQuestion(question, false).then(function(result) {
 
             if (result.indexOf('no') > -1 || result.indexOf('first') > -1) { // Let's just play the first eppie
-                Homey.log("no or first");
+                console.log("no or first");
                 var firstEppie = self.getLowestEpisode(selection);
 
-                Homey.log("firstEppie", firstEppie);
+                console.log("firstEppie", firstEppie);
 
                 if (firstEppie) {
                     Homey.manager('speech-output').say("Okay, playing the oldest episode of " + speechMatch);
@@ -1481,11 +1650,11 @@ self.getSingleResult = function(selection, speechResults) {
             }
 
             if (result.indexOf('newest') > -1 || result.indexOf('latest') > -1) {
-                Homey.log("latest or newest");
+                console.log("latest or newest");
 
                 var newestEppie = self.getNewestEpisode(selection);
 
-                Homey.log("newestEppie", newestEppie);
+                console.log("newestEppie", newestEppie);
 
                 if (newestEppie) {
                     Homey.manager('speech-output').say("Okay, playing the most recent episode of " + speechMatch);
@@ -1496,9 +1665,9 @@ self.getSingleResult = function(selection, speechResults) {
             }
 
             if (result.indexOf('random') > -1 || result.indexOf('any') > -1) {
-                Homey.log("random or any");
+                console.log("random or any");
                 var randMedia = selection[Math.floor(Math.random() * selection.length)];
-                Homey.log("randMedia", randMedia)
+                console.log("randMedia", randMedia)
                 Homey.manager('speech-output').say("Okay, playing a random episode of " + speechMatch);
                 self.player({mediaItem:  randMedia, command: 'playItem', devices: speechResults.devices});
                 return true;
@@ -1506,21 +1675,16 @@ self.getSingleResult = function(selection, speechResults) {
             }
 
             // Let's try if we can get a good match from the indexer
-
-
             var concatSearchString = speechMatch + " " + result;
             var eppieConcatSearch = indexers['episode'].search(concatSearchString);
-
-            // Homey.log("Trying search concat", concatSearchString);
-            // Homey.log("Search result:", eppieConcatSearch);
 
             if(eppieConcatSearch.length > 0){
 
                 var bestEppieIndexResult = self.getBestResult(eppieConcatSearch);
-                // Homey.log("bestEppieIndexResult", bestEppieIndexResult);
+                // console.log("bestEppieIndexResult", bestEppieIndexResult);
 
                 var bestEppieMedia = self.keyToMediaItem(bestEppieIndexResult.ref);
-                // Homey.log("bestEppieMedia", bestEppieMedia);
+                // console.log("bestEppieMedia", bestEppieMedia);
 
 
                 if(bestEppieMedia){
@@ -1587,11 +1751,11 @@ self.askQuestion = function(question, allowedAnswers) {
 
     var deferred = Q.defer();
 
-    Homey.log("askQuestion: ", question);
+    console.log("askQuestion: ", question);
 
     Homey.manager('speech-input').ask(question, function(err, result) {
         if (err) {
-            Homey.log("ASK ERROR", err);
+            console.log("ASK ERROR", err);
             // Homey.error( err );
             return deferred.reject(err);
         }
@@ -1606,8 +1770,8 @@ self.askQuestion = function(question, allowedAnswers) {
             for (var a = 0; a < allowedAnswers.length; a++) {
                 var allowedAnswer = allowedAnswers[a];
 
-                Homey.log("allowedAnswer", allowedAnswer);
-                Homey.log("indexOf", allowedAnswer.indexOf(result));
+                console.log("allowedAnswer", allowedAnswer);
+                console.log("indexOf", allowedAnswer.indexOf(result));
 
                 if (allowedAnswer.indexOf(result) != -1) {
                     return deferred.resolve(allowedAnswer);
@@ -1684,7 +1848,6 @@ self.getBestResult = function(selection) {
 
     var bestResult = selection[0] || null;
 
-
     for (var a = 0; a < selection.length; a++) {
         if (selection[a].score > bestResult.score) {
             bestResult = selection[a];
@@ -1692,7 +1855,6 @@ self.getBestResult = function(selection) {
     }
 
     return bestResult;
-
 }
 
 self.getLowestEpisode = function(episodes) {
@@ -1710,17 +1872,15 @@ self.getLowestEpisode = function(episodes) {
     }
 
     return lowestEpisode;
-
 }
 
 self.getNewestEpisode = function(episodes) {
 
-    Homey.log("determine newest episode from selection of " + episodes.length);
+    console.log("determine newest episode from selection of " + episodes.length);
 
     var newestEpisode = episodes[0];
 
     for (var a = 0; a < episodes.length; a++) {
-
         var curEppiIndex = parseInt(episodes[a].compoundEpisodeIndex);
         var newestIndex = parseInt(newestEpisode.compoundEpisodeIndex);
 
@@ -1737,13 +1897,11 @@ self.filterMediaItemsBy = function(key, value, selection) {
     var result = [];
 
     selection.forEach(function(item) {
-
         if (item[key] && value) {
             if (item[key].toLowerCase() == value.toLowerCase()) {
                 result.push(item);
             }
         }
-
     });
 
     return result;
@@ -1771,18 +1929,23 @@ self.player = function(options){
 
 }
 
-self.api = {
 
+
+self.api = {
+    initPin: self.initPinProcess,
     getPin: self.getPlexPin,
     checkPin: self.checkPlexPin,
     getServers: self.getPlexServers,
     getPlayers: self.getPlexPlayers,
+    updateInstalledPlayers: self.updateInstalledPlayers,
     getSettings: self.getSettings,
     resetSettings: self.resetSettings,
     setSelectedDevice: self.setSelectedDevice,
     getPlayerTemplate: self.getPlayerTemplate,
     searchAutoComplete: self.searchAutoComplete,
-    player: self.player
+    player: self.player,
+    getLogs: self.getLogs,
+    isServerAvailable: self.isServerAvailable
 }
 
 module.exports = {

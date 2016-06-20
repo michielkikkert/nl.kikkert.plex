@@ -9,7 +9,7 @@ var lastSession = null;
 
 
 self.init = function(devices_data, callback) {
-    Homey.log('Chromecast driver init', devices_data)
+    console.log('Chromecast driver init', devices_data)
     discoverChromecasts()
     installedPlayers = devices_data;
     
@@ -69,8 +69,6 @@ self.getInstalledPlayers = function(){
 
 self.process = function(options, callback, stop){
 
-    Homey.log("DRIVER PROCESS", options);
-
     var mediaItem = options.mediaItem || null;
     var command = options.command || null;
 
@@ -78,7 +76,6 @@ self.process = function(options, callback, stop){
 
         function(device) {
              if(mediaItem && command == 'playItem'){
-                
                 device.play(buildPlexUrl(options), 0, function(){
                     lastSession = mediaItem;
                     Homey.manager('speech-output').say('Enjoy watching ' + mediaItem.title);
@@ -87,7 +84,7 @@ self.process = function(options, callback, stop){
 
             if(command == "stop"){
                 device.stop(function(){
-                    Homey.log("Chromecast stopped playing");
+                    console.log("Chromecast stopped playing");
                 });
             }
 
@@ -106,7 +103,7 @@ self.getLastSession = function(){
 }
 
 self.deleted = function(device_data, callback){
-    Homey.log('deviceDeleted', device_data);
+    console.log('deviceDeleted', device_data);
 
     for (var x in installedPlayers) {
 
@@ -140,7 +137,7 @@ function buildPlexUrl(options){
     url += "&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&subtitles=burn&copyts=1&Accept-Language=en&X-Plex-Chunked=1&X-Plex-Product=Plex%20Web&X-Plex-Version=2.6.1&X-Plex-Client-Identifier=ChromeCastMike&X-Plex-Platform=Chrome&X-Plex-Platform-Version=50.0&X-Plex-Device=OSX&X-Plex-Device-Name=Plex%20Web%20%28Chrome%29";
     url += "&X-Plex-Token=" + options.serverToken; 
 
-    Homey.log("buildPlexUrl", url);
+    console.log("buildPlexUrl", url);
 
     return url;
 }
@@ -158,9 +155,7 @@ function discoverChromecasts(resetList) {
                 status: status.playerState
             })
         })
-        // Homey.log('devices', devices)
     })
-    // Homey.log('devices', devices)
     setTimeout(function() {
         // rediscover devices
         discoverChromecasts(true)
@@ -175,31 +170,6 @@ function getDevice(deviceName, success, error) {
         success(device)
     } else if (error) {
         error({"error": true, "message": "Sorry, I couldn't find Chromecast device "+ deviceName});
-    }
-}
-
-function getVideoInfo(url, callback) {
-    if (isYoutubeVideo(url)) {
-        var options = {
-            filter: function(format) {
-                return format.type && format.type.indexOf('video/mp4') === 0
-            }
-        }
-        getYTVideoInfo(url, options, function(err, info) {
-            if (err) return callback(err)
-            // Homey.log('YT info', info)
-            callback(null, {
-                url: info.url,
-                cover: {
-                    title: info.title,
-                    url: info.iurlmaxres
-                }
-            })
-        })
-    } else {
-        callback(null, {
-            url: url
-        })
     }
 }
 

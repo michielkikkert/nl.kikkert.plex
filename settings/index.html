@@ -3,6 +3,18 @@
 <html>
 	<head>
 		<style>
+
+			@keyframes blinker {  
+			  50% { opacity: 0.0; }
+			}
+			.media-updating {
+				animation: blinker 1s linear infinite;
+				margin: -30px 52px 0 0;
+				font-weight: bold;
+				padding: 5px;
+				border: 2px solid green;
+				color: green;
+			}
 			.start-pin-button {
 				margin:20px;
 				font-size: 16px;
@@ -11,6 +23,14 @@
 			.hide {
 				display: none;
 			}
+			.green {
+				color: green;
+			}
+
+			.red {
+				color: red;
+			}
+
 			#pin-number {
 				font-size: 24px;
 				letter-spacing: 5px;
@@ -23,14 +43,80 @@
 			.container {
 				margin: 20px 0 50px;
 			}
+			.server-block, .media-meta-container {
+				border: 1px solid #555;
+				width: 95%;
+				padding: 20px;
+				margin: 20px 0;
+			}
+			.connection-block {
+				height: 30px;
+				line-height: 30px;
+				border: 1px solid #555;
+				padding: 5px;
+				margin-bottom: 5px;
+			}
+			.connection-block.selected {
+				font-weight: bold;
+				border: 3px solid green;
+			}
 
+			.connection-block.selected.available {
+				background-color: green;
+				color: white;
+			}
+
+			.connection-block.selected.not-available{
+				background-color: red;
+				color: white;
+			}
+
+			.connection-block.selected .button {
+				background-color: green;
+				color: white;
+			}
+			.media-meta-container .media-meta, .media-meta-container .media-latest-item {
+				float: left;
+				padding: 10px;
+				margin-right: 20px;
+			}
+			.media-meta-container .media-meta .media-type {
+				font-size: 20px;
+			}
+			.media-meta-container .media-meta .media-count {
+				font-size: 20px;
+				font-weight: bold;
+			}
+			.media-meta-container .media-meta .movies {
+				color: white;
+				background-color: green;
+			}
+			.media-meta-container .media-meta .series {
+				color: white;
+				background-color: blue;
+			}
+			.media-meta-container .media-latest-item {
+				font-size: 20px;
+			    font-weight: bold;
+			    text-shadow: 1px 1px 3px;
+			    text-transform: uppercase;
+			}
+			.media-meta-container {
+				opacity: 1;
+			}
+			.media-meta-container.updating {
+				opacity: 0.2;
+			}
+			.media-meta-container h1 {
+				padding: 10px;
+			}
 		</style>
+
+		<link rel="stylesheet" href="/manager/webserver/assets/font/fontawesome/fontawesome.css">
 		<script type="text/javascript" src="/manager/webserver/assets/js/jquery.js"></script>
 		<script type="text/javascript" src="/manager/webserver/assets/js/angular.js"></script>
 	
 		<script>
-
-		// This entire settings page could probably be refactored to use the (now functional) Homey sockets. This page was made when Homey was not fully functional yet... and slightly more buggy :-)
 		
 		angular.module('PlexSettingsApp', [])
 
@@ -43,130 +129,174 @@
 			$scope.checkTimer = null;
 			$scope.hasToken = false;
 			$scope.settings = null;
+			$scope.error = null;
+			$scope.hasSetup = null;
+			$scope.pinTries = 0;
+			$scope.pinProcessSuccess = false;
+			$scope.serverAvailable = false;
+			$scope.updatingMedia = false;
+			$scope.cpuwarns = 0;
 
-			$scope.getSettings = function(callback){
+			Homey.get('plex', function(err, settings){
+		        if( err ) $scope.error = err;
+		        $scope.settings = settings;
+		        $scope.init();
+				$scope.$apply();
+		    });
+			
+			Homey.on("console_log", function(data){
+				console.log("SERVER: ", data);
+			})
 
-				$timeout(function(){
+			Homey.on("cpuwarn", function(data){
+				console.log("cpuwarn event", data);
+				$scope.cpuwarns = data.count;
+				$scope.$apply();
+			})
 
-					Homey.api( 'GET', '/getSettings', function( err, result ){
-					    if( err ) {
-					    	$scope.error = "Could not get settings from server";
-					    	console.log('error', $scope.error);
-					    } 
+			Homey.on("media_update", function(data){
+				console.log("media_update event", data);
+				$scope.updatingMedia = data;
+				$scope.$apply();
+			})
 
-					    if(typeof callback === 'function'){
-					    	callback(result);
-					    } else {
-					    	$scope.settings = result;
-					   		$scope.$apply();	
-					    }
-					   	console.log('SERVER SETTINGS', result);
-					});
+			Homey.on("settings_update", function(settings){
+				console.log("settings_update event", settings);
 
-
-				},500);
-				
-			}
-
-			// get settings first using the hard way (to prevent a possible race condition)
-			$scope.getSettings(function(settings){
-				$scope.settings = settings;
-				
-				if($scope.settings && $scope.settings.plexTv && $scope.settings.plexTv.token) {
-					$scope.pinSuccess = true;
+				if(settings.plexTv.token){
 					$scope.hasToken = true;
+					$scope.pinSuccess = true;
+					$scope.pinPending = false;
 				}
 
-				// If only one server, and no server has been selected yet, auto select it.
-				if($scope.settings.servers.length == 1 && !$scope.settings.selected.server.hostname){
-					$scope.setDevice("server", $scope.settings.servers[0]);
-					$scope.getSettings();
+				$scope.settings = settings;
+				$scope.$apply();
+			})
+
+			Homey.on('selected_server_available', function(available){
+				console.log("selected_server_available event", available);
+				$scope.serverAvailable = available;
+				$scope.$apply();
+			})
+
+			Homey.on('pin_received', function(pin){
+				console.log("pin_received event", pin);
+				$scope.pinResponse = pin;
+				$scope.pinPending = true;
+				$scope.$apply();
+			})
+
+			Homey.on('pin_check', function(tries){
+				console.log("pin_check event", tries);
+				$scope.pinTries = tries;
+				$scope.$apply();
+			})
+
+			Homey.on('pin_process_success', function(result){
+				console.log("pin_process_success event", result);
+				$scope.pinProcessSuccess = result;
+				if(!result){
+					$scope.error = "Could not finish pin process.";
 				}
 
 				$scope.$apply();
-
 			})
 
-			$scope.getFirstLocalAddress = function(addresses){
-				return addresses.split(',')[0];
+
+			function updateInstalledPlayers(){
+
+				Homey.api( 'GET', '/updateInstalledPlayers/', function( err, result ){
+					console.log("Installed players", result);
+				});
 			}
 
-			$scope.startPinProcess = function(){
-				$scope.settings.hasSetup = false;
-				$scope.pinSuccess = false;
+			$scope.init = function(){
+
+				// Determine the current state
+				if($scope.settings && $scope.settings.plexTv && $scope.settings.plexTv.token) {
+					$scope.pinSuccess = true;
+					$scope.hasToken = true;
+					$scope.getServers(); // Gets the latest known servers when settings page is opened.
+					$scope.checkServerAvailability(
+						function(){
+							$scope.getLogs();
+						}
+					);
+				}
+
+				$scope.hasSetup = $scope.settings.hasSetup;
+				updateInstalledPlayers();
 			}
 
-			$scope.getPin = function(){
-
-				Homey.api( 'GET', '/getPin/', function( err, result ){
+			$scope.initPin = function(){
+				Homey.api( 'GET', '/initPin/', function( err, result ){
+				    
 				    if( err ) {
 				    	$scope.error = "Could not get PIN from plex.tv";
 				    } 
 
-				    var pin = result.code[0];
-				    currentPinID = result.id[0]._;
-				    $scope.pinResponse = pin;
+				    console.log("Pin process started");
 				    $scope.pinPending = true;
-				    $scope.checkPin(currentPinID);
 				    $scope.$apply();
 				});
 			}
 
-
-			$scope.checkPin = function(pinId, cancel){
-				
-				var checkCount = 0;
-
-				if(cancel){
-					$timeout.cancel($scope.checkTimer);
-					$scope.pinPending = false;
-					return;
-				}
-
-				if(pinId && pinId !=""){
-
-					Homey.api( 'GET', '/checkPinToken/?id=' + pinId, function( err, result ){
-					    if( err ) {
-					    	$scope.error = "Could not get PIN from plex.tv";
-					    } 
-
-					    if(result){
-					    	$timeout.cancel($scope.checkTimer);
-					    	$scope.pinSuccess = true;
-					    	$scope.pinPending = false;
-					 		$scope.getSettings();
-					    	$scope.getServers();
-					    
-					    } else {
-					    	$scope.checkTimer = $timeout(function(){
-					    		$scope.checkPin(pinId);
-					    	}, 2000)
-					    }
-
-					});
-				}
-			}
-
-			$scope.getServers = function(){
+			$scope.getServers = function(callback){
 				Homey.api( 'GET', '/getPlexServers', function( err, result ){
-				    if(result){
-				  		$scope.getSettings();
-				    }
+					if(err){console.warn(err)}
+			  		console.log(result);
+			  		if(callback){
+			  			callback(result);
+			  		}
 				});
 			}
 
-			$scope.setDevice = function(type, deviceObject){
-				Homey.api( 'POST', '/setDevice/', {type: type, device:deviceObject}, function( err, result ){
-				    if(result){
-				  		$scope.getSettings();
-				    }
+			$scope.getLogs = function(callback){
+				Homey.api( 'GET', '/getLogs', function( err, result ){
+					if(err){console.warn(err)}
+			  		
+					if(typeof result == 'object' && result.length){
+						for(var a = 0; a < result.length ; a++){
+							console.log("Existing log entry:", result[a]);
+						}
+					} else {
+						console.log(result);
+					}
 
+			  		
+			  		if(callback){
+			  			callback(result);
+			  		}
 				});
 			}
 
-			$scope.isSelectedServer = function(id){
+			$scope.setServer = function(server, connection){
+				
+				var serverCopy = angular.copy(server);
+				delete serverCopy.connections;
+
+				angular.extend(serverCopy, connection);
+
+				Homey.api( 'POST', '/setDevice/', {type: 'server', device:serverCopy}, function( err, result ){
+				    console.log(result);
+				    $scope.checkServerAvailability();
+				});
+			}
+
+			$scope.checkServerAvailability = function(callback){
+				
+				Homey.api( 'GET', '/isServerAvailable', function( err, result ){
+					if(err){console.warn(err)}
+			  		
+			  		if(callback){
+			  			callback(result);
+			  		}
+				});
+			}
+
+			$scope.isSelectedServerConnection = function(machineId, connection){
 				if($scope.settings.selected.server){
-					if($scope.settings.selected.server.machineIdentifier == id){
+					if($scope.settings.selected.server.machineIdentifier == machineId && $scope.settings.selected.server.hostname == connection.address && $scope.settings.selected.server.port == connection.port){
 						return true
 					}
 				}
@@ -177,24 +307,23 @@
 				
 				$scope.settings = {};
 				
-				Homey.api( 'GET', '/resetSettings', function( err, result ){
-				    
-				    // location.reload(false);
-				    $scope.getSettings();
+				Homey.api( 'GET', '/resetSettings', function( err, result ){	    
+				   Homey.get('plex', function(err, settings){
+						console.log('get plex from reset');
+				        if( err ) return console.error('Could not get all settings', err);
+				        $scope.settings = settings;
+			        	$scope.$apply();
+				    });
 
+				   $scope.init(); // re-init to set state correctly.
 				});
 			}
-
-			$scope.getServers();
-
 		}]);
 
 		function onHomeyReady(){
-			angular.bootstrap(document, ['PlexSettingsApp']);
 			Homey.ready();
+			angular.bootstrap(document, ['PlexSettingsApp']);
 		}
-
-
 		</script>
 
 	</head>
@@ -204,19 +333,22 @@
 		<div class="error-bar" ng-show="error">
 			{{error}}
 		</div>
-		
-		<button ng-click="checkPin(null, true)" ng-show="pinPending">Cancel PIN process</button>
 
-		<div id="pin-container" ng-show="!settings.hasSetup" class="container">
+		<div id="pin-intro" ng-show="!hasToken" class="container">
 			<h1>Connect to Plex</h1>
 			<h2>Get your server and player details from plex.tv</h2>
 			<h2>Make sure your Plex Player is running!</h2>
-
+			<hr />
 			<p>
-				<button class="start-pin-button" ng-click="getPin()" ng-show="!pinSuccess">start PIN process </button>
-				<span ng-show="pinPending">..waiting for plex.tv confirmation...</span>
+				<button class="start-pin-button" ng-click="initPin()" ng-show="!pinSuccess && !pinPending">Start PIN process </button>
+				<button class="cancel-pin-button" ng-click="cancelPin()" ng-show="pinPending"><i class="fa fa-pending"></i> Cancel PIN process </button>
 			</p>
+			<p ng-show="pinPending">
+				Tries: {{pinTries}}
+			</p>
+		</div>
 
+		<div id="pin-container" ng-show="pinResponse && !pinSuccess">
 			<div id="pin-process">
 				<div id="pin-number">
 					{{pinResponse}}
@@ -224,40 +356,67 @@
 				<p> 
 					Visit <a href="https://plex.tv/pin" target="_blank">plex.tv/pin</a> in your browser and enter the PIN number above!
 				</p>
-
-				<div id="pin-success" ng-show="pinSuccess">
-					successfully connected your Homey to Plex.tv!
-				</div>
-
 			</div>
-			
 		</div>
-		<div id="setup">
-			<button class="right" ng-click="startPinProcess()">Re-pair with Plex.tv</button>
+		<div id="pin-success" ng-show="pinProcessSuccess">
+			successfully connected your Homey to Plex.tv!
+		</div>
+
+		<div id="setup" ng-show="hasToken">
 			<div id="server-container" class="container">
-				<h1>Plex Media server</h1>
-				
-				<div ng-repeat = "server in settings.servers" class="server-block">
-					<span ng-class="{'selected':isSelectedServer(server.attributes.machineIdentifier)}">{{server.attributes.name}} - {{getFirstLocalAddress(server.attributes.localAddresses)}} (remote: {{server.attributes.address}})</span>
-					<button ng-click = "setDevice('server', server)" ng-show="!isSelectedServer(server.attributes.machineIdentifier)">Select</button>
-				</div>
+				<h1>Plex Media server<span class="right" ng-show="cpuwarns > 1">({{cpuwarns}} cpu warnings..)</span></h1>
+				<h2 ng-show="settings.selected.server.hostname" ng-class="{available : serverAvailable}">Your selected server ({{settings.selected.server.name}}) is <span ng-show="!serverAvailable">NOT</span> available</h2>
+				<div class="right media-updating" ng-show="updatingMedia">Media is updating.....</div>
+				<div ng-repeat = "server in settings.servers" class="server-block" ng-show="settings.servers.length > 0"> <!--  | filter: {owned : true} -->
+					<h2>{{server.name}} <span ng-show="server.sourceTitle">({{server.sourceTitle}})</span></h2>
+					<hr />
+					<h3>Available connections:</h3><br/>
 
+					<div 	
+						ng-repeat = "connection in server.connections" 
+						class="connection-block" 
+						ng-class="{'selected': isSelectedServerConnection(server.machineIdentifier, connection), 'available': serverAvailable, 'not-available' : !serverAvailable}
+					">
+						<b>{{connection.address}}</b> - 
+						PORT: <b>{{connection.port}}</b> - 
+						using SSL: <b ng-show="connection.scheme == 'http'">NO</b><b ng-show="connection.scheme == 'https'">YES</b> - 
+						LOCAL: <b>{{connection.local}}</b>
+
+						<button class="right" ng-click = "setServer(server, connection)">
+							<span ng-show="!isSelectedServerConnection(server.machineIdentifier, connection)">Use this connection</span>
+							<span ng-show="isSelectedServerConnection(server.machineIdentifier, connection)">Refresh this connection</span>
+						</button>
+					</div>	
+				</div>
+				<div ng-show="settings.servers.length == 0">
+					<h3>No (valid) Servers found :-(</h3>
+				</div>
 			</div>
-
-			<!-- players are devices and controlled by a driver now -->
-			<!-- <div id="players-container" class="container">
-				<h1>Players</h1>
-
-				<div ng-repeat = "player in settings.players" class="server-block">
-					<span ng-class="{'selected':isSelectedPlayer(player.attributes.clientIdentifier)}">{{player.attributes.product}} - {{player.attributes.name}} - {{player.attributes.address}}</span>
-					<button ng-click = "setDevice('player', player)">Select</button>
+			<div class="media-meta-container" ng-class="{'updating': updatingMedia}">
+				<div class="media-meta movies">
+					<span class="media-type">Movies: </span>
+					<span class="media-count">{{settings.meta.media.movie}}</span>
 				</div>
-
-			</div> -->
+				<div class="media-meta series">
+					<span class="media-type">Episodes: </span>
+					<span class="media-count">{{settings.meta.media.episode}}</span>
+				</div>
+				<hr/>
+				<div style="clear:both;"></div>
+				<div class="media-meta-latest">
+					<h1>Latest added movies</h1>
+					<span class="media-latest-item" ng-repeat="latest in settings.meta.media.latestmovies">
+						{{latest.title}}
+					</span>
+					<div style="clear:both;"></div>
+				</div>
+			</div>
 		</div>
 
+		<pre>{{settings | json}}</pre>
 
-		<!-- <button ng-click="getSettings()">Settings (NG)</button> -->
+		<!-- <button ng-click="test()">test</button> -->
+		<!-- <button ng-click="getServers()">getServers</button> -->
 		<button ng-click="resetSettings()">Reset settings</button>
 		
 		<br/><br/><br/><br/><br/><br/>

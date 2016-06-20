@@ -75,7 +75,7 @@ self.pair = function( socket ) {
 }
 
 self.deleted = function(device_data, callback){
-    Homey.log('deviceDeleted', device_data);
+    console.log('deviceDeleted', device_data);
     
 
     for (var x in installedPlayers) {
@@ -170,7 +170,11 @@ self.updateInstalledPlayers = function(){
 
     var deferred = Q.defer();
 
+    console.log("updateInstalledPlayers");
+
     plexApp.getPlayers(function(result){
+
+        console.log("getPlayers", result);
 
         if(result){
             result.Device.forEach(function(device) {
@@ -179,7 +183,9 @@ self.updateInstalledPlayers = function(){
 
                 installedPlayers.forEach(function(player){
                     if(player.id === updatedPlayer[identifierKey]){
-                        player = updatedPlayer;
+                        player.hostname = updatedPlayer.hostname;
+                        player.port = updatedPlayer.port;
+                        player.token = updatedPlayer.token;
                     }
                 })    
             });
@@ -199,7 +205,7 @@ self.updateInstalledPlayers = function(){
 
 self.isPlayerAvailable = function(plexPlayer){
 
-    Homey.log("isPlayerAvailable", plexPlayer);
+    console.log("isPlayerAvailable", plexPlayer);
 
      var deferred = Q.defer();
 
@@ -209,13 +215,13 @@ self.isPlayerAvailable = function(plexPlayer){
 
         plexPlayer.query("/player/playback").then(function(result) {
             
-            Homey.log("plexPlayer query success", result);
+            console.log("plexPlayer query success", result);
 
             return deferred.resolve(true);
 
         }, function(err) {
 
-            Homey.log("plexPlayer query fail", err);
+            console.log("plexPlayer query fail", err);
 
             return deferred.reject(false);
         
@@ -272,7 +278,7 @@ self.process = function(options, callback, stop){
 
         plexPlayer = new PlexAPI(self.getApiConfig(playerConfig));
 
-        Homey.log("We have playerConfig and a plexPlayer object: ", plexPlayer);
+        console.log("We have playerConfig and a plexPlayer object: ", plexPlayer);
 
         // Check if player is available:
         self.isPlayerAvailable(plexPlayer).then(
@@ -303,7 +309,7 @@ self.process = function(options, callback, stop){
 
             function(){ // Not available
 
-                Homey.log("Player doesn't seem to be available");
+                console.log("Player doesn't seem to be available");
 
                 // The player is not available, possible reasons:
                 // 1) The player is not running
