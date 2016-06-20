@@ -351,7 +351,7 @@
 		<div id="pin-container" ng-show="pinResponse && !pinSuccess">
 			<div id="pin-process">
 				<div id="pin-number">
-					{{pinResponse}}
+					{{pinResponse[0]}}
 				</div>
 				<p> 
 					Visit <a href="https://plex.tv/pin" target="_blank">plex.tv/pin</a> in your browser and enter the PIN number above!
@@ -392,7 +392,7 @@
 					<h3>No (valid) Servers found :-(</h3>
 				</div>
 			</div>
-			<div class="media-meta-container" ng-class="{'updating': updatingMedia}">
+			<div class="media-meta-container" ng-class="{'updating': updatingMedia}" ng-show="hasSetup">
 				<div class="media-meta movies">
 					<span class="media-type">Movies: </span>
 					<span class="media-count">{{settings.meta.media.movie}}</span>
