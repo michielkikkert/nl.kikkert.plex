@@ -142,6 +142,20 @@
                 ]
             },
             {
+                "id": "stopplayingchrome",
+                "title": {
+                    "en": "Stop Plex",
+                    "nl": "Stop Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    }
+                ]
+            },
+            {
                 "id": "playitempht",
                 "title": {
                     "en": "Play Plex Media",
@@ -160,6 +174,20 @@
                         "placeholder": {
                             "en": "Find a media item"
                         }
+                    }
+                ]
+            },
+            {
+                "id": "stopplayingpht",
+                "title": {
+                    "en": "Stop Plex",
+                    "nl": "Stop Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
                     }
                 ]
             }

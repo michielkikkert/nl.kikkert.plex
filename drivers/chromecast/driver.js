@@ -22,6 +22,11 @@ self.init = function(devices_data, callback) {
         callback( null, true );
     });
 
+    Homey.manager('flow').on('action.stopplayingchrome', function( callback, args ){
+        plexApp.player({command: 'stop', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback()
 }
 

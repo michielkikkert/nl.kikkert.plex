@@ -8,7 +8,7 @@
 			  50% { opacity: 0.0; }
 			}
 			.media-updating {
-				animation: blinker 1s linear infinite;
+				/*animation: blinker 1s linear infinite;*/
 				font-weight: bold;
 				padding: 5px;
 				border: 2px solid green;
@@ -101,8 +101,12 @@
 			.media-meta-container .media-latest-item {
 				font-size: 20px;
 			    font-weight: bold;
-			    text-shadow: 1px 1px 3px;
 			    text-transform: uppercase;
+			    border: 1px solid #555;
+			    margin-bottom: 10px;
+			}
+			.media-meta-container .media-latest-item i{
+				margin-right: 10px;
 			}
 			.media-meta-container {
 				opacity: 1;
@@ -382,7 +386,7 @@
 				<h1>Plex Media server<span class="right" ng-show="cpuwarns > 1">({{cpuwarns}} cpu warnings..)</span></h1>
 				<h2 ng-show="settings.selected.server.hostname" ng-class="{available : serverAvailable}">Your selected server ({{settings.selected.server.name}}) is <span ng-show="!serverAvailable">NOT</span> available</h2>
 				<div ng-repeat = "server in settings.servers" class="server-block" ng-show="settings.servers.length > 0"> <!--  | filter: {owned : true} -->
-					<h2>{{server.name}} <span ng-show="server.sourceTitle">({{server.sourceTitle}})</span></h2>
+					<h2><img src="/app/nl.kikkert.plex/assets/icon.svg" style="width:20px;margin-right:10px;vertical-align:middle">{{server.name}} <span ng-show="server.sourceTitle">({{server.sourceTitle}})</span></h2>
 					<hr />
 					<h3>Available connections:</h3><br/>
 
@@ -391,14 +395,14 @@
 						class="connection-block" 
 						ng-class="{'selected': isSelectedServerConnection(server.machineIdentifier, connection), 'available': serverAvailable, 'not-available' : !serverAvailable, 'updating': updatingMedia}
 					">
-						<b>{{connection.address}}</b> - 
+						<i class="fa fa-desktop" aria-hidden="true"></i>&nbsp;&nbsp;<b>{{connection.address}}</b> - 
 						PORT: <b>{{connection.port}}</b> - 
 						using SSL: <b ng-show="connection.scheme == 'http'">NO</b><b ng-show="connection.scheme == 'https'">YES</b> - 
 						LOCAL: <b>{{connection.local}}</b>
 
 						<button class="right" ng-click = "setServer(server, connection)">
 							<span ng-show="!isSelectedServerConnection(server.machineIdentifier, connection)">Use this connection</span>
-							<span ng-show="isSelectedServerConnection(server.machineIdentifier, connection)">Refresh this connection</span>
+							<span ng-show="isSelectedServerConnection(server.machineIdentifier, connection)"><i class="fa fa-refresh" aria-hidden="true"></i>&nbsp;Refresh this connection</span>
 						</button>
 					</div>	
 				</div>
@@ -421,24 +425,23 @@
 				<div class="media-meta-latest">
 					<h1>Latest added movies</h1>
 					<span class="media-latest-item" ng-repeat="latest in settings.meta.media.latestmovies">
-						{{latest.title}}
+						<i class="fa fa-film" aria-hidden="true"></i> {{latest.title}}
 					</span>
 					<div style="clear:both;"></div>
 				</div>
 			</div>
 		</div>
-		<hr />
 		<h1>Currently installed players:</h1>
-		<span ng-show="settings.installedPlayers.length == 0">No players installed. Go to the devices page to install a player</span>
+		<span ng-show="settings.installedPlayers.length == 0">No players installed. Go to the <a href="/manager/zones/" target="_parent">devices page</a> to install a player</span>
 		<div ng-repeat="player in settings.installedPlayers">
 			{{player.name}} ({{player.hostname}}:{{player.port}}) - Type: {{player.type}}
 		</div>
-		<hr/><br/><br/>
+		<br/><br/>
 		<!-- <pre>{{settings | json}}</pre> -->
 
 		<!-- <button ng-click="test()">test</button> -->
 		<!-- <button ng-click="getServers()">getServers</button> -->
-		<button ng-click="resetSettings()">Reset settings</button>
+		<button class="right" ng-click="resetSettings()"><i class="fa fa-ban" aria-hidden="true"></i>&nbsp;Reset settings</button>
 		
 		<br/><br/><br/><br/><br/><br/>
 

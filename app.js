@@ -80,6 +80,7 @@ var realtime = self.realtime = function(l){
 Homey.on('cpuwarn', function(warning){
     console.log("CPU WARNING", warning);
     cpuwarns = warning.count;
+    realtime("-------- CPU WARNING -------- ", warning.count);
 })
 
 // console.log = function(l){
@@ -697,10 +698,11 @@ self.cacheMediaByType = function(type) {
             realtime("Found " + result._children.length + " media items of type: " + type);
             console.log("Adding " + type + " to cache.......");
             realtime("Adding " + type + " to cache.......");
-
             settings.meta.media[type] = result._children.length;
 
-            result._children.forEach(function(mediaItem) {
+
+            for(var i =0; i < result._children.length; i++){
+                var mediaItem = result._children[i];
                 if (mediaItem._elementType == 'Video') {
                     var cacheItem = self.createMediaCacheItem(mediaItem);
                     mediaCache.items.push(cacheItem);
@@ -713,7 +715,22 @@ self.cacheMediaByType = function(type) {
 
                     self.registerMediaTrigger(cacheItem);
                 }
-            });
+            }
+
+            // result._children.forEach(function(mediaItem) {
+            //     if (mediaItem._elementType == 'Video') {
+            //         var cacheItem = self.createMediaCacheItem(mediaItem);
+            //         mediaCache.items.push(cacheItem);
+
+            //         self.addToIndexer(type, cacheItem);
+
+            //         if (typeof mediaItem.viewCount == 'undefined') {
+            //             self.addToIndexer('neverwatched', cacheItem);
+            //         }
+
+            //         self.registerMediaTrigger(cacheItem);
+            //     }
+            // });
 
             return deferred.resolve();
 

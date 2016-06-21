@@ -28,6 +28,11 @@ self.init = function(devices_data, callback){
         callback( null, true );
     });
 
+    Homey.manager('flow').on('action.stopplayingpht', function( callback, args ){
+        plexApp.player({command: 'stop', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback();
 }
 
