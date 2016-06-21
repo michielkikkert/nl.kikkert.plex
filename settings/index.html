@@ -9,7 +9,6 @@
 			}
 			.media-updating {
 				animation: blinker 1s linear infinite;
-				margin: -30px 52px 0 0;
 				font-weight: bold;
 				padding: 5px;
 				border: 2px solid green;
@@ -71,6 +70,10 @@
 				color: white;
 			}
 
+			.connection-block.selected.updating {
+				animation: blinker 1s linear infinite;
+			}
+
 			.connection-block.selected .button {
 				background-color: green;
 				color: white;
@@ -105,7 +108,7 @@
 				opacity: 1;
 			}
 			.media-meta-container.updating {
-				opacity: 0.2;
+				opacity: 0.7;
 			}
 			.media-meta-container h1 {
 				padding: 10px;
@@ -167,7 +170,12 @@
 					$scope.hasToken = true;
 					$scope.pinSuccess = true;
 					$scope.pinPending = false;
+				} else {
+					$scope.hasToken = false;
+					$scope.hasSetup = false;
 				}
+
+				$scope.hasSetup = settings.hasSetup;
 
 				$scope.settings = settings;
 				$scope.$apply();
@@ -222,6 +230,10 @@
 							$scope.getLogs();
 						}
 					);
+				} else {
+					$scope.pinSuccess = false;
+					$scope.hasToken = false;
+					$scope.hasSetup = false;
 				}
 
 				$scope.hasSetup = $scope.settings.hasSetup;
@@ -272,6 +284,8 @@
 
 			$scope.setServer = function(server, connection){
 				
+				$scope.serverAvailable = false;
+
 				var serverCopy = angular.copy(server);
 				delete serverCopy.connections;
 
@@ -305,8 +319,9 @@
 
 			$scope.resetSettings = function(){
 				
+				if(!confirm("Are you sure you want to reset all Plex Server settings?")) {return;}
+
 				$scope.settings = {};
-				
 				Homey.api( 'GET', '/resetSettings', function( err, result ){	    
 				   Homey.get('plex', function(err, settings){
 						console.log('get plex from reset');
@@ -344,7 +359,7 @@
 				<button class="cancel-pin-button" ng-click="cancelPin()" ng-show="pinPending"><i class="fa fa-pending"></i> Cancel PIN process </button>
 			</p>
 			<p ng-show="pinPending">
-				Tries: {{pinTries}}
+				Tries: {{pinTries.tries}}
 			</p>
 		</div>
 
@@ -366,7 +381,6 @@
 			<div id="server-container" class="container">
 				<h1>Plex Media server<span class="right" ng-show="cpuwarns > 1">({{cpuwarns}} cpu warnings..)</span></h1>
 				<h2 ng-show="settings.selected.server.hostname" ng-class="{available : serverAvailable}">Your selected server ({{settings.selected.server.name}}) is <span ng-show="!serverAvailable">NOT</span> available</h2>
-				<div class="right media-updating" ng-show="updatingMedia">Media is updating.....</div>
 				<div ng-repeat = "server in settings.servers" class="server-block" ng-show="settings.servers.length > 0"> <!--  | filter: {owned : true} -->
 					<h2>{{server.name}} <span ng-show="server.sourceTitle">({{server.sourceTitle}})</span></h2>
 					<hr />
@@ -375,7 +389,7 @@
 					<div 	
 						ng-repeat = "connection in server.connections" 
 						class="connection-block" 
-						ng-class="{'selected': isSelectedServerConnection(server.machineIdentifier, connection), 'available': serverAvailable, 'not-available' : !serverAvailable}
+						ng-class="{'selected': isSelectedServerConnection(server.machineIdentifier, connection), 'available': serverAvailable, 'not-available' : !serverAvailable, 'updating': updatingMedia}
 					">
 						<b>{{connection.address}}</b> - 
 						PORT: <b>{{connection.port}}</b> - 
@@ -393,6 +407,7 @@
 				</div>
 			</div>
 			<div class="media-meta-container" ng-class="{'updating': updatingMedia}" ng-show="hasSetup">
+				<div class="right media-updating" ng-show="updatingMedia">Media is updating.....</div>
 				<div class="media-meta movies">
 					<span class="media-type">Movies: </span>
 					<span class="media-count">{{settings.meta.media.movie}}</span>
@@ -412,8 +427,14 @@
 				</div>
 			</div>
 		</div>
-
-		<pre>{{settings | json}}</pre>
+		<hr />
+		<h1>Currently installed players:</h1>
+		<span ng-show="settings.installedPlayers.length == 0">No players installed. Go to the devices page to install a player</span>
+		<div ng-repeat="player in settings.installedPlayers">
+			{{player.name}} ({{player.hostname}}:{{player.port}}) - Type: {{player.type}}
+		</div>
+		<hr/><br/><br/>
+		<!-- <pre>{{settings | json}}</pre> -->
 
 		<!-- <button ng-click="test()">test</button> -->
 		<!-- <button ng-click="getServers()">getServers</button> -->

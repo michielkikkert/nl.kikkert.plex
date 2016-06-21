@@ -233,7 +233,8 @@ self.getApiConfig = function(selected) {
 }
 
 self.setPlexServer = function() {
-    if (settings.selected.server) {
+    if (settings.selected.server && settings.selected.server.hostname) {
+        console.log("Setting plex server:", settings.selected.server);realtime("Setting plex server:", settings.selected.server);
         plexServer = new PlexAPI(self.getApiConfig(settings.selected.server));
         return true;
     } else {
@@ -461,7 +462,10 @@ self.isServerAvailable = function(callback) {
         }, function(err) {
             console.log("Could not connect to Plex Media Server: " + err);
             realtime("Could not connect to Plex Media Server: " + err);
-            Homey.manager('api').realtime('selected_server_available', false);
+            if(settings.selected.server.hostname.indexOf(err) > -1){
+                Homey.manager('api').realtime('selected_server_available', false);    
+            }
+            
             if(callback){ callback(false) };
             deferred.reject();
         });
@@ -527,8 +531,6 @@ self.makeServersArray = function(servers){
         curServer.accessToken       = server.attributes.accessToken;
         curServer.connections       = [];
 
-        curServer.connections.push({"address": server.attributes.address, "port": server.attributes.port, "scheme": server.attributes.scheme, "local": false});
-        
         if(curServer.owned){
             server.attributes.localAddresses.split(',').forEach(function(localserver){
                 curServer.connections.push({"address": localserver, "port": plexConfig.defaultPort, "scheme": server.attributes.scheme, "local": true})
@@ -538,6 +540,8 @@ self.makeServersArray = function(servers){
             curServer.ownerId = server.attributes.ownerId || "";
 
         }
+
+        curServer.connections.push({"address": server.attributes.address, "port": server.attributes.port, "scheme": server.attributes.scheme, "local": false});
 
         aServers.push(curServer);
     })
@@ -1910,7 +1914,7 @@ self.filterMediaItemsBy = function(key, value, selection) {
 self.player = function(options){
 
     options.server = settings.selected.server;
-    options.serverToken = settings.plexTv.token;
+    options.serverToken = settings.selected.server.token;
     var driverKey = options.devices[0].type;
 
     Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
@@ -1945,7 +1949,8 @@ self.api = {
     searchAutoComplete: self.searchAutoComplete,
     player: self.player,
     getLogs: self.getLogs,
-    isServerAvailable: self.isServerAvailable
+    isServerAvailable: self.isServerAvailable,
+    realtime: self.realtime
 }
 
 module.exports = {

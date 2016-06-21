@@ -14,7 +14,7 @@ var self = {};
 var installedPlayers = [];
 
 self.init = function(devices_data, callback){
-	console.log("PHT Driver init");
+	console.log("PHT Driver init");plexApp.realtime("PHT Driver init");
     console.log("players installed", devices_data.length);
     console.log("players", devices_data);
     installedPlayers = devices_data;
@@ -24,7 +24,7 @@ self.init = function(devices_data, callback){
     });
 
     Homey.manager('flow').on('action.playitempht', function( callback, args ){
-        plexApi.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
+        plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
         callback( null, true );
     });
 
@@ -46,18 +46,40 @@ self.pair = function( socket ) {
                 var player = device.attributes;
                 
                 if (player.provides == "player" && player.name != "" && supported.indexOf(player.product) > -1) {
-                    var deviceTemplate = {
-                        name: "",
-                        data: {},
-                        capabilities: []
-                    };
-                    deviceTemplate.name = player.platform + " on " + player.name;
-                    deviceTemplate.data = self.getPlayerTemplate(device);
-                    deviceTemplate.data.id = player[identifierKey];
-                    deviceTemplate.data.type = 'pht';
-                    devices.push(deviceTemplate);
+                    
+                    if(device.Connection && device.Connection.length){
+                        device.Connection.forEach(function(connection){
+
+                            var urlParts = url.parse(connection.attributes.uri);
+                            var hostname = urlParts.hostname;
+                            var port = urlParts.port;
+
+                            var deviceTemplate = {
+                                name: "",
+                                data: {
+                                    "name": "",
+                                    "clientIdentifier": "",
+                                    "token": "",
+                                    "hostname": "",
+                                    "port": null
+                                },
+                                capabilities: []
+                            };
+                            deviceTemplate.name = player.platform + " on " + player.name + " (" + hostname + ":" + port + ")";
+                            deviceTemplate.data.name = device.attributes.name;
+                            deviceTemplate.data.clientIdentifier = device.attributes.clientIdentifier;
+                            deviceTemplate.data.token = device.attributes.token;
+                            deviceTemplate.data.hostname = hostname;
+                            deviceTemplate.data.port = port;
+                            deviceTemplate.data.id = player[identifierKey] + "|" + hostname + "|" + port;
+                            deviceTemplate.data.type = 'pht';
+                            devices.push(deviceTemplate);        
+                        })
+                    }
+                    
                 }
             });
+
             console.log("devices", devices);
             callback( null, devices );
         }); 
@@ -127,9 +149,9 @@ self.getPlayerTemplate = function(device) {
     }
 
     // OVERWRITE FOR REMOTE (VIRTUAL HOMEY) TESTING
-    if (REMOTE_MODE) {
-        hostname = device.attributes.publicAddress;
-    }
+    // if (REMOTE_MODE) {
+    //     hostname = device.attributes.publicAddress;
+    // }
 
     return {
         "name": device.attributes.name,
@@ -203,6 +225,44 @@ self.updateInstalledPlayers = function(){
 
 }
 
+self.updateCurrentPlayer = function(playerConfig){
+
+    var deferred = Q.defer();
+
+    console.log("updateCurrentPlayer", playerConfig);
+
+    plexApp.getPlayers(function(result){
+
+        console.log("getPlayers", result);
+
+        if(result){
+            result.Device.forEach(function(device) {
+
+                var updatedPlayer = self.getPlayerTemplate(device);
+
+                console.log(playerConfig.id, updatedPlayer[identifierKey]);
+
+                if(playerConfig.id === updatedPlayer[identifierKey]){
+                    playerConfig.hostname = updatedPlayer.hostname;
+                    playerConfig.port = updatedPlayer.port;
+                    playerConfig.token = updatedPlayer.token;
+                }
+                 
+            });
+
+            deferred.resolve(playerConfig);
+
+        } else {
+
+            deferred.reject(playerConfig);
+        }
+
+    }); 
+
+    return deferred.promise;
+
+}
+
 self.isPlayerAvailable = function(plexPlayer){
 
     console.log("isPlayerAvailable", plexPlayer);
@@ -239,7 +299,7 @@ self.isPlayerAvailable = function(plexPlayer){
 
 self.process = function(options, callback, stop){
 
-    console.log("DRIVER PROCESS", options);
+    console.log("DRIVER PROCESS", options);plexApp.realtime("DRIVER PROCESS", options);
 
     var mediaItem = options.mediaItem || null;
     var command = options.command || null;
@@ -321,14 +381,18 @@ self.process = function(options, callback, stop){
 
                     callback({error: true, "message": "Could not connect to player, trying to update player details....."});
 
-                    self.updateInstalledPlayers().then(
+                    self.updateCurrentPlayer(playerConfig).then(
                         
-                        function(){ // re-try
+                        function(updatedPlayer){ // re-try
+                            console.log("received updated player", updatedPlayer);
+                            options.devices[0] = updatedPlayer;
                             self.process(options, callback, true);
                         },
 
-                        function(){
-                            callback({error: true, "message": "Unable to update your players"});
+                        function(updatedPlayer){
+                            callback({error: true, "message": "Unable to update your player"});
+                            options.devices[0] = updatedPlayer;
+                            self.process(options, callback, true); // But we are still going to try one more time, just in case the existing player config was correct, but not yet connected
                         }
                     )
 
