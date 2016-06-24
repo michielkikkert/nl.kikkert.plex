@@ -133,10 +133,18 @@ self.api = { // Api used to access driver methods from App.
 
 function buildPlexUrl(options){
 
+    var localServerAndPort = options.server.hostname + ":" + options.server.port;
+
+    if(!options.server.owned){
+        var tempServerAndPort = getOwnedLocalServer(options.allServers);
+        if(tempServerAndPort) {
+            localServerAndPort = tempServerAndPort;
+        }
+    }
+
     var url = "";
     url += "http://";
-    url += options.server.hostname;
-    url += ":" + options.server.port;
+    url += localServerAndPort;
     url += "/video/:/transcode/universal/start?";
     url += "path=" + encodeURIComponent("http://" + options.server.hostname + ":" + options.server.port + options.mediaItem.key);
     url += "&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&subtitles=burn&copyts=1&Accept-Language=en&X-Plex-Chunked=1&X-Plex-Product=Plex%20Web&X-Plex-Version=2.6.1&X-Plex-Client-Identifier=ChromeCastMike&X-Plex-Platform=Chrome&X-Plex-Platform-Version=50.0&X-Plex-Device=OSX&X-Plex-Device-Name=Plex%20Web%20%28Chrome%29";
@@ -145,6 +153,23 @@ function buildPlexUrl(options){
     console.log("buildPlexUrl", url);
 
     return url;
+}
+
+function getOwnedLocalServer(servers){
+    
+    var returnValue = false;
+
+    servers.forEach(function(server){
+        if(server.owned && server.connections.length){
+            server.connections.forEach(function(connection){
+                if (connection.local && !returnValue){
+                    returnValue = connection.address + ":" + connection.port;
+                }
+            })
+        }
+    })
+
+    return returnValue;
 }
 
 function discoverChromecasts(resetList) {

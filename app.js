@@ -1930,6 +1930,7 @@ self.filterMediaItemsBy = function(key, value, selection) {
 
 self.player = function(options){
 
+    options.allServers = settings.servers;
     options.server = settings.selected.server;
     options.serverToken = settings.selected.server.token;
     var driverKey = options.devices[0].type;
