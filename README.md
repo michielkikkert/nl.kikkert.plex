@@ -2,6 +2,20 @@
 
 This is the Plex Remote control app for the Homey device. There is still a lot to do but this version should be functional. It uses the Plex.tv PIN procedure to get the Plex server and player details.
 
+# Version 1.1.0
+
+- Complete refactor of the settings page
+- Complete refactor of the PMS connection logic
+- Choose your best connection (now allows you to even choose the network interface if more than one is found)
+- Added realtime debugging to browser console (on the settings page / plex, open your browser console)
+- Addded Shared Server Support (EXPERIMENTAL - especially ChromeCast is tricky)
+- Added translation support to main application and PHT + Chrome drivers
+- Added Support for DUTCH (at least speech, settings page still needs some more work to translate)
+- Tweaks to speech triggers
+- Added a flow card for 'Plex pause'
+
+THIS RELEASE REQUIRES YOU TO RE-START THE PLEX PIN PROCEDURE. AFTER INSTALL, GO TO SETTINGS AND HIT 'Reset settings' and then do the PIN thing again. Be patient, if all goes well it will show all connection options and shared servers if you have any.
+
 # Player support
 
 This release supports 2 drivers: 1) PHT - Plex Home Theater and 2) ChromeCast (only v2 has been tested). More drivers may be developed by the community. Just report your wishes at the dedicated Plex Thread: https://forum.athom.com/discussion/366/homey-plex-application-main-discussion-thread .Please note that the ChromeCast driver detects many more devices on your network then just ChromeCasts. It might also support smart TV's and other DNLA devices. Please just add a real chromecast device as the other devices are unlikely to work (VERY unlikely).
@@ -14,7 +28,7 @@ This release supports 2 drivers: 1) PHT - Plex Home Theater and 2) ChromeCast (o
 * 4) Open een browser window en log into plex.tv
 * 5) Go to the Homey page - Settings - Plex (left column)
 * 6) Click the 'Start Pin Process' button, remember the PIN and go to plex.tv/pin to enter it.
-* 7) Go back to the Homey settings page. You should see your available PMS server, click select button next to it.
+* 7) Go back to the Homey settings page. You should see your available PMS servers, click 'use this connection' button next to the connection you want to use. If it cannot connect with your choosen connection, it will turn red.
 * 8) The Homey Plex app will now analyze your media and cache all relevant media keys for speech recognition (this might take a minute)
 * 9) Now go to the 'Devices' page on the Homey and add a device in a Zone. Select Plex, your needed Driver and pick your device.
 * 10) Homey Plex should now be ready to receive voice commands!
