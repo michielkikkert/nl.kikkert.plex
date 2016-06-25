@@ -115,6 +115,12 @@
                 "title": { 
                     "en": "Plex stops playing"
                 } 
+            },
+            {
+               "id" : "media_pause",
+                "title": { 
+                    "en": "Plex pauses"
+                } 
             }
 
         ],
@@ -236,7 +242,9 @@
                 ],
                 "nl": [
                     "volgende aflevering",
-                    "1 aflevering verder"
+                    "volgende aflevering kijken"
+                    "1 aflevering verder",
+                    "een aflevering verder"
                 ]
             }
         },
@@ -304,7 +312,8 @@
                     "refresh media"
                 ],
                 "nl": [
-                    "media verversen"
+                    "media verversen",
+                    "ververs media"
                 ]
             }
         },
@@ -313,10 +322,17 @@
             "importance": 0.5,
             "triggers": {
                 "en": [
-                    "movie pause"
+                    "movie pause",
+                    "pause movie",
+                    "pauze movie",
+                    "pause episode",
+                    "pauze episode"
                 ],
                 "nl": [
-                    "film pauzeer"
+                    "film pauzeer",
+                    "pauzeer",
+                    "pauzeer film",
+                    "pauzeer kijken"
                 ]
             }
         },
@@ -332,7 +348,8 @@
                 "nl": [
                     "film verder",
                     "film ga verder",
-                    "film vervolgen"
+                    "film vervolgen",
+                    "verder kijken"
                 ]
             }
         },
@@ -342,6 +359,7 @@
             "triggers": {
                 "en": [
                     "movie stop",
+                    "movie store",
                     "moviestop",
                     "plex stop",
                     "movie star",
@@ -349,7 +367,6 @@
                     "stop the movie",
                     "stop watching",
                     "watch stop",
-                    "stop",
                     "movie starts",
                     "end movie",
                     "stop playing",
@@ -358,7 +375,10 @@
                 "nl": [
                     "movie stop",
                     "stop film",
-                    "film stoppen"
+                    "film stoppen",
+                    "kunststoffen",
+                    "stop met kijken",
+                    "stoppen kijken"
                 ]
             }
         },

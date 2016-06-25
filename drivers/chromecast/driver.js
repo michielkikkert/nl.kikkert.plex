@@ -83,7 +83,7 @@ self.process = function(options, callback, stop){
              if(mediaItem && command == 'playItem'){
                 device.play(buildPlexUrl(options), 0, function(){
                     lastSession = mediaItem;
-                    Homey.manager('speech-output').say('Enjoy watching ' + mediaItem.title);
+                    Homey.manager('speech-output').say(__('play_item') + mediaItem.title);
                 })
              }
 
@@ -199,7 +199,7 @@ function getDevice(deviceName, success, error) {
     if (device) {
         success(device)
     } else if (error) {
-        error({"error": true, "message": "Sorry, I couldn't find Chromecast device "+ deviceName});
+        error({"error": true, "message": __('device_not_found')+ deviceName});
     }
 }
 

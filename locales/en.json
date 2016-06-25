@@ -1,11 +1,33 @@
 {
-    "title": "Homey plex app",
-    "hello": "Hello, __name__",
     "settings": {
-        "name": "Homey plex app settings page",
-        "description": "Setup your plex media server and players here."
+        "connecttoplex" : "Connect to Plex.tv"
     },
-    "pair": {
-        "press_button": "Press the `pair` button on your device."
-    }
+	"no_server_found" 					: "You need to register a Plex Media Server first. Go to the settings page",
+	"no_media_found" 					: "I couldn't find any media items",
+	"no_players_found"					: "I couldn't find any installed players. Go to the devices page to install one",
+
+	"currently_watching_episode" 		: "You are watching an episode of __title__ named ",
+	"currently_watching_movie"   		: "You are watching",
+	"no_watch_session"					: "No active watch sessions found. I'm not sure what you want to watch. Please start over",
+	"no_next_found_for"					: "Sorry, I couldn't find the next episode for ",
+	"playing_random_movie"				: "Playing random movie from your collection!",
+	"did_not_understand"				: "Sorry... I didn't understand __error__. Please try again.",
+	"dont_know_meaning_of"				: "Sorry, I don't know what you mean with ",
+	"no_match_found_for"				: "Sorry, I couldn't find a match for __result__. Please start over",
+	"playing_recent_episode"			: "Okay, playing the most recent episode of ",
+	"playing_oldest_episode"			: "Okay, playing the oldest episode of ",
+	"playing_random_episode"			: "Okay, playing a random episode of ",
+	"sorry_failure"						: "Sorry master, I have failed you.",
+	"play_item"							: "Enjoy watching ",
+	"device_not_found"					: "Sorry, I couldn't find device ",
+	"unknown_error"						: "An unknown error occurred",
+	"command_not_implemented"			: "command __command__ not implemented for this player",
+	"could_not_connect_player"			: "Could not connect to player, trying to update player details.....",
+	"is_player_running"					: "Sorry, is your player running?",
+
+	"movie_or_series"					: "Would you like to watch a movie or a series?",
+	"movie"								: "movie",
+	"series"							: "series",
+	"multiple_results"					: "I found __num__ matching results for __match__. Which would you like to watch? ",
+	"not_enough_info"					: "Sorry, I do not have enough information to find what you want to watch. Do you have any more information on what episode of __match__ you want to watch?"
 }

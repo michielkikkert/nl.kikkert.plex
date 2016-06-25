@@ -83,15 +83,6 @@ Homey.on('cpuwarn', function(warning){
     realtime("-------- CPU WARNING -------- ", warning.count);
 })
 
-// console.log = function(l){
-//     logs.push(l);    
-//     if(logs.length > 100){
-//         logs.shift();
-//     }
-//     Homey.manager('api').realtime('console_log', l);
-//     process.stdout.write(l + '\n');
-// }
-
 self.init = function() {
 
     if(reset){
@@ -1028,12 +1019,12 @@ self.getSessions = function() {
 self.processConversation = function(speechObject) {
 
     if(!settings.hasSetup){
-        Homey.manager('speech-output').say("You need to register a Plex Media Server first. Go to the settings page");
+        Homey.manager('speech-output').say(__('no_server_found'));
         return;
     }
 
     if(mediaCache.items.length == 0){
-        Homey.manager('speech-output').say("I couldn't find any media items");
+        Homey.manager('speech-output').say(__('no_media_found'));
         return;
     }
 
@@ -1067,7 +1058,7 @@ self.processConversation = function(speechObject) {
         })
 
         if(devices.length == 0){
-            Homey.manager('speech-output').say("I couldn't find any installed players. Go to the devices page to install one");
+            Homey.manager('speech-output').say(__('no_players_found'));
             return;
         }
 
@@ -1157,11 +1148,11 @@ self.processConversation = function(speechObject) {
 
                     if (mediaItem.type == 'episode') {
 
-                        friendly = "You are watching an episode of " + mediaItem.title + " named " + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
+                        friendly = __('currently_watching_episode', {"title":mediaItem.title}) + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
 
                     } else {
 
-                        friendly = "You are watching " + mediaItem.title;
+                        friendly = __('currently_watching_movie') + mediaItem.title;
 
                     }
 
@@ -1182,15 +1173,10 @@ self.processConversation = function(speechObject) {
 
                 if(mediaItem && mediaItem.title){
                     if (mediaItem.type == 'episode') {
-
-                        friendly = "You are watching an episode of " + mediaItem.title + " named " + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
-
+                        friendly = __('currently_watching_episode', {"title":mediaItem.title}) + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
                     } else {
-
-                        friendly = "You are watching " + mediaItem.title;
-
+                        friendly = __('currently_watching_movie') + mediaItem.title;
                     }
-
                     Homey.manager('speech-output').say(friendly);
                     return;
                 }
@@ -1220,7 +1206,7 @@ self.processConversation = function(speechObject) {
 
                     if (current.length == 0) {
                         console.log("No active player session found");
-                        Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
+                        Homey.manager('speech-output').say(__('no_watch_sessions'));
                         return;
                     }
 
@@ -1244,7 +1230,7 @@ self.processConversation = function(speechObject) {
                             self.player({mediaItem: self.keyToMediaItem(results[0].ref), command: 'playItem', devices: speechResults.devices});
                             return true;
                         } else {
-                            Homey.manager('speech-output').say("Sorry, I couldn't find the next episode for " + currentTitle);
+                            Homey.manager('speech-output').say(__('no_next_found_for') + currentTitle);
                             return;
                         }
 
@@ -1264,7 +1250,7 @@ self.processConversation = function(speechObject) {
 
                     if (current.length == 0) {
                         console.log("No active player session found");
-                        Homey.manager('speech-output').say("No active watch sessions found. I'm not sure what you want to watch. Please start over");
+                        Homey.manager('speech-output').say(__('no_watch_sessions'));
                         return;
                     }
 
@@ -1288,7 +1274,7 @@ self.processConversation = function(speechObject) {
                             self.player({mediaItem: self.keyToMediaItem(results[0].ref), command: 'playItem', devices: speechResults.devices});
                             return true;
                         } else {
-                            Homey.manager('speech-output').say("Sorry, I couldn't find the next episode for " + currentTitle);
+                            Homey.manager('speech-output').say(__('no_next_found_for') + currentTitle);
                             return;
                         }
 
@@ -1304,7 +1290,7 @@ self.processConversation = function(speechObject) {
             if (speechMediaLength == 0) {
                 if (speechResults.commands.indexOf('random') > -1 && speechResults.types.indexOf('movie') > -1) {
 
-                    Homey.manager('speech-output').say("Playing random movie from your collection!");
+                    Homey.manager('speech-output').say(__('playing_random_movie'));
 
                     // Get movies from cache
                     var tempMovies = self.filterMediaItemsBy('type', 'movie', mediaCache.items);
@@ -1399,7 +1385,7 @@ self.processConversation = function(speechObject) {
                     if (remainingMedia.length == 0 && !lastType) { // We have a mixed result, and no speech type. 
 
                         // Ask user for type
-                        self.askQuestion("Would you like to watch a movie or a series?", ['movie', 'series']).then(function(result) {
+                        self.askQuestion(__('movie_or_series'), [__('movie'), __('series')]).then(function(result) {
 
                             console.log("Valid response from askQuestion", result);
 
@@ -1407,9 +1393,9 @@ self.processConversation = function(speechObject) {
                                 return;
                             }
 
-                            if (result == 'movie') {
+                            if (result == __('movie')) {
                                 remainingMedia = moviesMedia;
-                            } else if (result == 'series') {
+                            } else if (result == __('series')) {
                                 remainingMedia = seriesMedia;
                             }
 
@@ -1420,7 +1406,7 @@ self.processConversation = function(speechObject) {
                         }, function(err) {
 
                             console.log("Invalid response from askQuestion", err);
-                            Homey.manager('speech-output').say("Sorry... I didn't understand " + err + ". Please try again.");
+                            Homey.manager('speech-output').say(__('did_not_understand', {"error": err}));
 
                         })
 
@@ -1455,7 +1441,7 @@ self.processConversation = function(speechObject) {
                 var unknownString = speechResults.transcript.trim();
 
 
-                Homey.manager('speech-output').say("Sorry, I don't know what you mean with " + unknownString);
+                Homey.manager('speech-output').say(__('dont_know_meaning_of') + unknownString);
                 console.log("SAY", "Sorry, I don't know what you mean with " + unknownString)
                 return;
             }
@@ -1518,8 +1504,7 @@ self.getSingleResult = function(selection, speechResults) {
         secondaryTitles.push(speechMatch);
 
         // console.log("secondaryTitles", secondaryTitles);
-
-        var question = "I found " + numResults + " matching results for " + speechMatch + ". Which would you like to watch? ";
+        var question = __('multiple_results', {"num": numResults, "match": speechMatch});
         question += secondaryTitles.join(",");
         question += "?";
 
@@ -1541,7 +1526,7 @@ self.getSingleResult = function(selection, speechResults) {
         }, function(err) {
 
             console.log("FAIL:", err);
-            Homey.manager('speech-output').say("Sorry, I couldn't find a match for " + result + ". Please start over");
+            Homey.manager('speech-output').say(__('no_match_found_for', {"result": result}));
             return false;
 
         })
@@ -1559,7 +1544,7 @@ self.getSingleResult = function(selection, speechResults) {
             // console.log("newestEppie", newestEppie);
 
             if (newestEppie) {
-                Homey.manager('speech-output').say("Okay, playing the most recent episode of " + speechMatch);
+                Homey.manager('speech-output').say(__('playing_recent_episode') + speechMatch);
                 self.player({mediaItem: newestEppie, command: 'playItem', devices: speechResults.devices});
                 return true;
 
@@ -1574,7 +1559,7 @@ self.getSingleResult = function(selection, speechResults) {
             // console.log("firstEppie", firstEppie);
 
             if (firstEppie) {
-                Homey.manager('speech-output').say("Okay, playing the oldest episode of " + speechMatch);
+                Homey.manager('speech-output').say(__('playing_oldest_episode') + speechMatch);
                 self.player({mediaItem: firstEppie, command: 'playItem', devices: speechResults.devices});
                 return true;
             }
@@ -1653,7 +1638,7 @@ self.getSingleResult = function(selection, speechResults) {
         }
 
         // Okay, we are still not successful. We need to try to get a match by asking more information I guess..
-        var question = "Sorry, I do not have enough information to find what you want to watch. Do you have any more information on what episode of " + speechMatch + " you want to watch?";
+        var question = __('not_enough_info', {"match": speechMatch});
 
         self.askQuestion(question, false).then(function(result) {
 
@@ -1664,7 +1649,7 @@ self.getSingleResult = function(selection, speechResults) {
                 console.log("firstEppie", firstEppie);
 
                 if (firstEppie) {
-                    Homey.manager('speech-output').say("Okay, playing the oldest episode of " + speechMatch);
+                    Homey.manager('speech-output').say(__('playing_oldest_episode') + speechMatch);
                     self.player({mediaItem: lowestNeverWatched, command: 'playItem', devices: speechResults.devices});
                     return true;
                 }
@@ -1678,7 +1663,7 @@ self.getSingleResult = function(selection, speechResults) {
                 console.log("newestEppie", newestEppie);
 
                 if (newestEppie) {
-                    Homey.manager('speech-output').say("Okay, playing the most recent episode of " + speechMatch);
+                    Homey.manager('speech-output').say(__('playing_recent_episode') + speechMatch);
                     self.player({mediaItem:  newestEppie, command: 'playItem', devices: speechResults.devices});
                     return true;
 
@@ -1689,7 +1674,7 @@ self.getSingleResult = function(selection, speechResults) {
                 console.log("random or any");
                 var randMedia = selection[Math.floor(Math.random() * selection.length)];
                 console.log("randMedia", randMedia)
-                Homey.manager('speech-output').say("Okay, playing a random episode of " + speechMatch);
+                Homey.manager('speech-output').say(__('playing_random_episode') + speechMatch);
                 self.player({mediaItem:  randMedia, command: 'playItem', devices: speechResults.devices});
                 return true;
 
@@ -1715,12 +1700,12 @@ self.getSingleResult = function(selection, speechResults) {
 
             }
 
-            Homey.manager['speech-output'].say("I'm sorry master, I failed you. Please start over");
+            Homey.manager['speech-output'].say(__('sorry_failure'));
 
 
         }, function(err) {
 
-            Homey.manager('speech-output').say("I'm sorry master, I failed you. Please start over");
+            Homey.manager('speech-output').say(__('sorry_failure'));
 
         })
 
@@ -1945,8 +1930,12 @@ self.player = function(options){
         Homey.manager('flow').trigger('media_start');
     }
 
-    if(options.command == "stop" || options.command == "pause"){
+    if(options.command == "stop"){
         Homey.manager('flow').trigger('media_stop');
+    }
+
+    if(options.command == "pause"){
+        Homey.manager('flow').trigger('media_pause');
     }
 
 }

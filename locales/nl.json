@@ -1,0 +1,33 @@
+{
+    "settings": {
+        "connecttoplex" : "Verbind met Plex.tv"
+    },
+	"no_server_found" 					: "Je moet eerst je Plex server registreren. Ga naar de instellingen pagina",
+	"no_media_found" 					: "Ik kon geen media vinden",
+	"no_players_found"					: "Ik kon geen Plex spelers vinden. Ga naar de apparaten pagina om een speler te installeren",
+
+	"currently_watching_episode" 		: "Je kijkt naar een aflevering __title__ genaamd ",
+	"currently_watching_movie"   		: "Je kijkt naar ",
+	"no_watch_session"					: "Geen active sessies gevonden. Ik ben er niet zeker van wat je wilt kijken. Begin overnieuw",
+	"no_next_found_for"					: "Sorry, ik kon de volgende aflevering niet vinden voor ",
+	"playing_random_movie"				: "Ik ga een willekeurige film afspelen",
+	"did_not_understand"				: "Sorry... Ik begreep __error__ niet. Probeer het opnieuw.",
+	"dont_know_meaning_of"				: "Sorry, ik begrijp niet wat je bedoeld met ",
+	"no_match_found_for"				: "Sorry, ik kon geen resultaat vinden voor __result__. Begin overnieuw",
+	"playing_recent_episode"			: "Okay, ik speel de meest recente aflevering van ",
+	"playing_oldest_episode"			: "Okay, ik speel de oudste aflevering van ",
+	"playing_random_episode"			: "Okay, ik speel een willekeurige aflevering van ",
+	"sorry_failure"						: "Mijn excuses meester, ik heb u gefaald...",
+	"play_item"							: "Veel plezier met ",
+	"device_not_found"					: "Sorry, I kon het apparaat niet vinden ",
+	"unknown_error"						: "Er heeft zicht een onbekend probleem voorgedaan",
+	"command_not_implemented"			: "Commando __command__ is niet geimplementeerd voor deze speler",
+	"could_not_connect_player"			: "Ik kon niet verbinden met je speler, ik probeer het nog een keer",
+	"is_player_running"					: "Sorry, draait je speler wel?",
+
+	"movie_or_series"					: "Wil je een film of een serie kijken?",
+	"movie"								: "film",
+	"series"							: "serie",
+	"multiple_results"					: "Ik heb __num__ resultaten gevonden voor __match__. Welke zou je willen kijken? ",
+	"not_enough_info"					: "Sorry, ik heb niet voldoende informatie om te vinden wat je wilt kijken. Heb je meer informatie over welke aflevering van __match__ je wilt kijken?"
+}

@@ -317,7 +317,7 @@ self.process = function(options, callback, stop){
 
     //Determine player:
     if(installedPlayers.length == 0){
-        callback({error: true, "message": "No players installed, please go to devices and install a player"});
+        callback({error: true, "message": __('no_players_found')});
         return;
     }
 
@@ -335,7 +335,7 @@ self.process = function(options, callback, stop){
     }
 
     if(!playerConfig){
-        callback({error: true, "message": "An unknown error occured"});
+        callback({error: true, "message": __('unknown_error')});
         return;
     }
 
@@ -364,7 +364,7 @@ self.process = function(options, callback, stop){
                         controls[command]();
                         return;    
                     } else {
-                        callback({error: true, "message" : "command " + command + " not implemented for this player"});
+                        callback({error: true, "message" : __('command_not_implemented', {"command":command})});
                         return;
                     }
                     
@@ -384,7 +384,7 @@ self.process = function(options, callback, stop){
 
                 if(!stop){
 
-                    callback({error: true, "message": "Could not connect to player, trying to update player details....."});
+                    callback({error: true, "message": __('could_not_connect_player')});
 
                     self.updateCurrentPlayer(playerConfig).then(
                         
@@ -395,7 +395,7 @@ self.process = function(options, callback, stop){
                         },
 
                         function(updatedPlayer){
-                            callback({error: true, "message": "Unable to update your player"});
+                            callback({error: true, "message": ""});
                             options.devices[0] = updatedPlayer;
                             self.process(options, callback, true); // But we are still going to try one more time, just in case the existing player config was correct, but not yet connected
                         }
@@ -403,7 +403,7 @@ self.process = function(options, callback, stop){
 
                 } else {
 
-                    callback({error: true, "message": "Sorry, is your player running?"});
+                    callback({error: true, "message": __('is_player_running')});
                 
                 }
 
@@ -446,7 +446,7 @@ self.controls = function(player) {
 
         player.perform(perform).then(function(result) {
             console.info(action)
-            Homey.manager('speech-output').say('Enjoy watching ' + item.title);
+            Homey.manager('speech-output').say(__('play_item') + item.title);
         }, function(err) {
             console.log(err);
             Homey.manager('speech-output').say(err);
