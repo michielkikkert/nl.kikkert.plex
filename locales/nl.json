@@ -29,5 +29,6 @@
 	"movie"								: "film",
 	"series"							: "serie",
 	"multiple_results"					: "Ik heb __num__ resultaten gevonden voor __match__. Welke zou je willen kijken? ",
-	"not_enough_info"					: "Sorry, ik heb niet voldoende informatie om te vinden wat je wilt kijken. Heb je meer informatie over welke aflevering van __match__ je wilt kijken?"
+	"not_enough_info"					: "Sorry, ik heb niet voldoende informatie om te vinden wat je wilt kijken. Begin opnieuw",
+	"what_type_watch"					: "Welke __type__ zou je willen kijken?"
 }

@@ -121,6 +121,12 @@
                 "title": { 
                     "en": "Plex pauses"
                 } 
+            },
+            {
+               "id" : "media_continue",
+                "title": { 
+                    "en": "Plex continues"
+                } 
             }
 
         ],
@@ -152,6 +158,34 @@
                 "title": {
                     "en": "Stop Plex",
                     "nl": "Stop Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    }
+                ]
+            },
+            {
+                "id": "pausechrome",
+                "title": {
+                    "en": "Pause Plex",
+                    "nl": "Pauzeer Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    }
+                ]
+            },
+            {
+                "id": "continuechrome",
+                "title": {
+                    "en": "Continue Plex",
+                    "nl": "Continueer Plex"
                 },
                 "args": [
                     {
@@ -196,6 +230,34 @@
                         "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
                     }
                 ]
+            },
+            {
+                "id": "pausepht",
+                "title": {
+                    "en": "Pause Plex",
+                    "nl": "Pauzeer Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
+                    }
+                ]
+            },
+            {
+                "id": "continuepht",
+                "title": {
+                    "en": "Continue Plex",
+                    "nl": "Continueer Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
+                    }
+                ]
             }
         ]
     },
@@ -226,6 +288,7 @@
                 ],
                 "nl": [
                     "kijken",
+                    "kijk",
                     "film kijken",
                     "serie kijken",
                     "plex"
@@ -331,8 +394,12 @@
                 "nl": [
                     "film pauzeer",
                     "pauzeer",
+                    "pauzeren",
                     "pauzeer film",
-                    "pauzeer kijken"
+                    "pauzeer kijken",
+                    "pauzeren kijken",
+                    "kijken pauzeren",
+                    "film pauzeren"
                 ]
             }
         },
@@ -349,7 +416,8 @@
                     "film verder",
                     "film ga verder",
                     "film vervolgen",
-                    "verder kijken"
+                    "verder kijken",
+                    "film verder kijken"
                 ]
             }
         },
@@ -376,9 +444,12 @@
                     "movie stop",
                     "stop film",
                     "film stoppen",
+                    "film stop",
                     "kunststoffen",
                     "stop met kijken",
-                    "stoppen kijken"
+                    "stoppen kijken",
+                    "stop kijken",
+                    "stoppen met kijken"
                 ]
             }
         },

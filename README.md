@@ -2,17 +2,27 @@
 
 This is the Plex Remote control app for the Homey device. There is still a lot to do but this version should be functional. It uses the Plex.tv PIN procedure to get the Plex server and player details.
 
+
+# Main Voice Triggers
+
+EN: Watch (I want to watch star trek);
+NL: Kijk / kijken (Ik wil star trek kijken)
+
 # Version 1.1.0
 
 - Complete refactor of the settings page
 - Complete refactor of the PMS connection logic
+- Fix for socket hangup errors causing the App to crash
+- Work-around for CPU warnings with very large PMS libraries (needs a proper fix at a later stage)
 - Choose your best connection (now allows you to even choose the network interface if more than one is found)
 - Added realtime debugging to browser console (on the settings page / plex, open your browser console)
 - Addded Shared Server Support (EXPERIMENTAL - especially ChromeCast is tricky)
 - Added translation support to main application and PHT + Chrome drivers
 - Added Support for DUTCH (at least speech, settings page still needs some more work to translate)
 - Tweaks to speech triggers
-- Added a flow card for 'Plex pause'
+- Added speech logic that allows for better movie title targetting bij asking: "I want to watch a movie" ("Ik wil een film kijken") - after which you can provide just the title. Because speech parsing is then much easier, the app can use a smart text indexer to determine best match. It also a more natural way of asking for things (btw - also works for series: "I want to watch a series" - "Ik wil een serie kijken".)
+- FLOWS: added triggers for play, stop, pause and continue
+- FLOWS: added actions for playItem, stop, pause and continue
 
 THIS RELEASE REQUIRES YOU TO RE-START THE PLEX PIN PROCEDURE. AFTER INSTALL, GO TO SETTINGS AND HIT 'Reset settings' and then do the PIN thing again. Be patient, if all goes well it will show all connection options and shared servers if you have any.
 
@@ -36,15 +46,13 @@ This release supports 2 drivers: 1) PHT - Plex Home Theater and 2) ChromeCast (o
 
 # Flow support
 
-I build in some basic triggers (play media, stop media) and one action (play media), which includes media search in your PMS. If you need more, let me know or fork the code, code it, and do a Pull Request :-)
+Multiple triggers and actions are available. The pPlayItem action also shows your media in the autocomplete.
 
 # Plex Media Server setup
 
 You can add your PMS by using the PIN procedure found on the Settings page after you installed the App. PMS needs to allow remote connections for this. Homey needs to be able to access your PMS (and any found players). Firewalls might really screw stuff up.
 
 # A few notes
-
-- The settings page is functional, but needs styling and some more fancy features
 
 - The Homey plex app main trigger is "watch". This will kick of the main speech logic. To see more commands, check the app.json file.
 

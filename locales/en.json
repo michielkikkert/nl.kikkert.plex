@@ -29,5 +29,6 @@
 	"movie"								: "movie",
 	"series"							: "series",
 	"multiple_results"					: "I found __num__ matching results for __match__. Which would you like to watch? ",
-	"not_enough_info"					: "Sorry, I do not have enough information to find what you want to watch. Do you have any more information on what episode of __match__ you want to watch?"
+	"not_enough_info"					: "Sorry, I do not have enough information to find what you want to watch. Please try again",
+	"what_type_watch"					: "What __type__ would you like to watch?"								
 }

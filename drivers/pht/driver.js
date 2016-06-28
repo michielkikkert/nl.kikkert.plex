@@ -33,6 +33,16 @@ self.init = function(devices_data, callback){
         callback( null, true );
     });
 
+    Homey.manager('flow').on('action.pausepht', function( callback, args ){
+        plexApp.player({command: 'pause', devices: [args.device]})
+        callback( null, true );
+    });
+
+    Homey.manager('flow').on('action.continuepht', function( callback, args ){
+        plexApp.player({command: 'continue', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback();
 }
 
@@ -459,6 +469,9 @@ self.controls = function(player) {
         },
         pause: function() {
             performer('pause');
+        },
+        continue: function(){
+            performer('play');
         },
         stop: function() {
             performer('stop');

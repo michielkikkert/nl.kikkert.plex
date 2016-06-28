@@ -27,6 +27,16 @@ self.init = function(devices_data, callback) {
         callback( null, true );
     });
 
+    Homey.manager('flow').on('action.pausechrome', function( callback, args ){
+        plexApp.player({command: 'pause', devices: [args.device]})
+        callback( null, true );
+    });
+
+    Homey.manager('flow').on('action.continuechrome', function( callback, args ){
+        plexApp.player({command: 'continue', devices: [args.device]})
+        callback( null, true );
+    });
+
     callback()
 }
 
@@ -80,21 +90,53 @@ self.process = function(options, callback, stop){
     getDevice(options.devices[0].name, 
 
         function(device) {
+
+            console.log("DEVICE: ", device.config);plexApp.realtime("ChromeCast Driver", command, device.config);
+
+
              if(mediaItem && command == 'playItem'){
                 device.play(buildPlexUrl(options), 0, function(){
                     lastSession = mediaItem;
                     Homey.manager('speech-output').say(__('play_item') + mediaItem.title);
+                    device.getStatus(function(err, status){
+                        console.log("STATUS:",err, status);
+                    });
                 })
              }
 
             if(command == "stop"){
-                device.stop(function(){
-                    console.log("Chromecast stopped playing");
+
+                device.stop(function(err){
+                    console.log("Chromecast stopped playing", err);plexApp.realtime("Chromecast stopped playing");
+                    device.getStatus(function(err, status){
+                        console.log("STATUS:",err, status);
+                    });
+                    setTimeout(function(){
+                        device.close(function(){
+                            console.log("Chromecast closed");
+                        });
+                    }, 3000)
                 });
             }
 
             if(command == "pause"){
-                device.pause();
+
+                device.pause(function(err){
+                    console.log("Chromecast paused", err);
+                    device.getStatus(function(err, status){
+                        console.log("STATUS:",err, status);
+                    });
+                });
+            }
+
+            if(command == "continue"){
+
+                device.unpause(function(err){
+                    console.log("Chromecast continue", err);
+                    device.getStatus(function(err, status){
+                        console.log("STATUS:",err, status);
+                    });
+                });
             }
         }, 
 
@@ -180,11 +222,6 @@ function discoverChromecasts(resetList) {
             resetList = false
         }
         devices.push(device)
-        device.on('status', function(status) {
-            Homey.manager('flow').trigger('chromecastStatusChanged', {
-                status: status.playerState
-            })
-        })
     })
     setTimeout(function() {
         // rediscover devices
@@ -199,6 +236,7 @@ function getDevice(deviceName, success, error) {
     if (device) {
         success(device)
     } else if (error) {
+        console.log("Failed to get device", deviceName);
         error({"error": true, "message": __('device_not_found')+ deviceName});
     }
 }

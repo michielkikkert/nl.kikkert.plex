@@ -1,5 +1,7 @@
 "use strict";
 
+require('longjohn');
+
 var Q = require('q');
 var PlexAPI = require("plex-api");
 var PlexAuth = require('plex-api-credentials');
@@ -159,6 +161,8 @@ self.getLogs = function(callback){
 }
 
 self.autoUpdate = function(){
+
+    clearTimeout(autoUpdateTimer);
 
     autoUpdateTimer = setTimeout(function(){
         updating = true;
@@ -524,10 +528,13 @@ self.makeServersArray = function(servers){
         curServer.connections       = [];
 
         if(curServer.owned){
-            server.attributes.localAddresses.split(',').forEach(function(localserver){
-                curServer.connections.push({"address": localserver, "port": plexConfig.defaultPort, "scheme": server.attributes.scheme, "local": true})
-            });
+            if(typeof server.attributes !="undefined" && typeof server.attributes.localAddresses !="undefined"){
+                server.attributes.localAddresses.split(',').forEach(function(localserver){
+                    curServer.connections.push({"address": localserver, "port": plexConfig.defaultPort, "scheme": server.attributes.scheme, "local": true})
+                });
+            }
         } else {
+            
             curServer.sourceTitle = server.attributes.sourceTitle || "";
             curServer.ownerId = server.attributes.ownerId || "";
 
@@ -837,6 +844,19 @@ self.addToIndexer = function(indexType, item) {
 
 }
 
+self.sanitizeTitle = function(title){
+
+    if(!title) return title;
+
+    var replacements = plexConfig.titleReplacements;
+
+    for(var i = 0; i < replacements.length ; i++){
+        title = title.replace(replacements[i][0], replacements[i][1]);
+    }
+
+    return title;
+}
+
 self.registerMediaTrigger = function(mediaItem) {
 
     var id = "media|" + mediaItem.type + "|" + mediaItem.key;
@@ -845,32 +865,10 @@ self.registerMediaTrigger = function(mediaItem) {
         mediaItem.episodeTitle = "";
     }
 
-    if(mediaItem.episodeTitle){
-        mediaItem.episodeTitle = mediaItem.episodeTitle.replace("(", "");
-        mediaItem.episodeTitle = mediaItem.episodeTitle.replace(")", "");
-        mediaItem.episodeTitle = mediaItem.episodeTitle.replace("&", "and");
-    }
-
-    if(mediaItem.title){
-        mediaItem.title = mediaItem.title.replace("(", "");
-        mediaItem.title = mediaItem.title.replace(")", "");
-        mediaItem.title = mediaItem.title.replace("&", "and");
-        mediaItem.title = mediaItem.title.replace("III", "3");
-        mediaItem.title = mediaItem.title.replace("II", "2");
-        mediaItem.title = mediaItem.title.replace(" – ", " ");
-        mediaItem.title = mediaItem.title.replace("–", " ");
-    }
-
-    if(mediaItem.secondaryTitle){
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("(", "");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace(")", "");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("&", "and");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("III", "3");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("II", "2");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace(" – ", " ");
-        mediaItem.secondaryTitle = mediaItem.secondaryTitle.replace("–", " ");
-    }
-
+    mediaItem.eposideTitle      = self.sanitizeTitle(mediaItem.eposideTitle);
+    mediaItem.title             = self.sanitizeTitle(mediaItem.title);
+    mediaItem.secondaryTitle    = self.sanitizeTitle(mediaItem.secondaryTitle);
+    mediaItem.titleSort         = self.sanitizeTitle(mediaItem.titleSort);
 
     var triggers = [];
 
@@ -1035,6 +1033,7 @@ self.processConversation = function(speechObject) {
     var speechResults = {
         commands: [],
         types: [],
+        localtypes: [],
         media: [],
         server: [],
         zones: speechObject.zones,
@@ -1067,9 +1066,6 @@ self.processConversation = function(speechObject) {
 
     }
 
-    console.log("speechResults", speechResults);
-
-
     // Go through the triggers and find corresponding items:
     speechObject.triggers.forEach(function(trigger) {
 
@@ -1082,6 +1078,7 @@ self.processConversation = function(speechObject) {
 
             if (elems[0] == 'type') {
                 speechResults.types.push(elems[1])
+                speechResults.localtypes.push(trigger.text);
             }
 
             if (elems[0] == 'media') {
@@ -1097,6 +1094,8 @@ self.processConversation = function(speechObject) {
             }
         }
     });
+
+    console.log("speechResults", speechResults);
 
     // Server selection by Speech disabled for now. 
     // Shared server support can be build in, however, some features like active sessions won't work with remote servers so need to do some more tests for that.
@@ -1119,7 +1118,7 @@ self.processConversation = function(speechObject) {
             return true;
         }
         if (speechResults.commands.indexOf('continue') > -1) {
-            self.player({command: "play", devices: speechResults.devices});
+            self.player({command: "continue", devices: speechResults.devices});
             return true;
         }
         if (speechResults.commands.indexOf('stop') > -1) {
@@ -1451,10 +1450,32 @@ self.processConversation = function(speechObject) {
             // No matching media found
             // TODO: ask for title of type
 
-            // if (speechMediaLength == 0 && speechResults.types.length == 1) {
-            //     console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
-            //     Homey.manager('speech-output').say("What  " + speechResults.types[0] + " would you like to watch?"); // ask
-            // }
+            if (speechMediaLength == 0 && speechResults.types.length == 1) {
+                console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
+                // Homey.manager('speech-output').say(__('what_type_watch', {"type": speechResults.localtypes[0]})); // ask
+                self.askQuestion(__('what_type_watch', {"type": speechResults.localtypes[0]}), false).then(function(result) {
+                
+                    if(typeof indexers[speechResults.types[0]] !="undefined"){
+                        var freeresult = indexers[speechResults.types[0]].search(result);
+
+                        console.log("free result:", freeresult);
+
+                        if (freeresult.length > 0) {
+                            var freeSearchMedia = self.indexToMediaArray(freeresult, mediaCache.items);
+
+                            if (freeSearchMedia.length > 0) {
+                                console.log("Playing best free search media result");realtime("Playing best free search media result");
+                                self.player({mediaItem: freeSearchMedia[0], command: 'playItem', devices: speechResults.devices});
+                                return true;
+                            }
+
+                        } else {
+                            Homey.manager('speech-output').say(__('not_enough_info', {"match": result}));
+                        }
+                    }
+                })
+
+            }
         }
 
     }
@@ -1936,6 +1957,10 @@ self.player = function(options){
 
     if(options.command == "pause"){
         Homey.manager('flow').trigger('media_pause');
+    }
+
+    if(options.command == "continue"){
+        Homey.manager('flow').trigger('media_continue');
     }
 
 }
