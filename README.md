@@ -8,6 +8,10 @@ This is the Plex Remote control app for the Homey device. There is still a lot t
 EN: Watch (I want to watch star trek);
 NL: Kijk / kijken (Ik wil star trek kijken)
 
+# Version 1.1.1
+
+- App broke on Homey 0.9.2 due to capabilities change. FIXED.
+
 # Version 1.1.0
 
 - Complete refactor of the settings page

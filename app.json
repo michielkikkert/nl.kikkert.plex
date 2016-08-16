@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Plex",
@@ -288,6 +288,7 @@
                 ],
                 "nl": [
                     "kijken",
+                    "kuiken",
                     "kijk",
                     "film kijken",
                     "serie kijken",
