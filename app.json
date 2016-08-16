@@ -58,7 +58,7 @@
                 "small": "drivers/pht/assets/small.png"
             },
             "class": "plexplayer",
-            "capabilities": [ "play", "pause", "stop" ],
+            "capabilities": [ ],
             "pair": [
                 {
                   "id": "configure_players",
@@ -85,7 +85,7 @@
                 "small": "drivers/chromecast/assets/small.jpg"
             },
             "class": "plexplayer",
-            "capabilities": [ "play", "pause", "stop" ],
+            "capabilities": [ ],
             "pair": [
                 {
                   "id": "configure_players",
