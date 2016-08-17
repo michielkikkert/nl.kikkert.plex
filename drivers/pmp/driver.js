@@ -6,7 +6,7 @@ var PlexAPI     = require("plex-api");
 var config      = require('../../plex-config');
 var constants   = require('../../const');
 
-var productName = "Plex Home Theater";
+var productName = "Plex Media Player";
 var supported = config.supportedPlayers;
 var REMOTE_MODE = config.remoteMode;
 var plexApp = Homey.app.api;
@@ -20,29 +20,29 @@ self.init = function(devices_data, callback){
     console.log("players", devices_data);
     installedPlayers = devices_data;
 
-    Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
-        callback( null, plexApp.searchAutoComplete(args.query) ); 
-    });
+    // Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
+    //     callback( null, plexApp.searchAutoComplete(args.query) ); 
+    // });
 
-    Homey.manager('flow').on('action.playitempht', function( callback, args ){
-        plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
-        callback( null, true );
-    });
+    // Homey.manager('flow').on('action.playitempht', function( callback, args ){
+    //     plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
+    //     callback( null, true );
+    // });
 
-    Homey.manager('flow').on('action.stopplayingpht', function( callback, args ){
-        plexApp.player({command: 'stop', devices: [args.device]})
-        callback( null, true );
-    });
+    // Homey.manager('flow').on('action.stopplayingpht', function( callback, args ){
+    //     plexApp.player({command: 'stop', devices: [args.device]})
+    //     callback( null, true );
+    // });
 
-    Homey.manager('flow').on('action.pausepht', function( callback, args ){
-        plexApp.player({command: 'pause', devices: [args.device]})
-        callback( null, true );
-    });
+    // Homey.manager('flow').on('action.pausepht', function( callback, args ){
+    //     plexApp.player({command: 'pause', devices: [args.device]})
+    //     callback( null, true );
+    // });
 
-    Homey.manager('flow').on('action.continuepht', function( callback, args ){
-        plexApp.player({command: 'continue', devices: [args.device]})
-        callback( null, true );
-    });
+    // Homey.manager('flow').on('action.continuepht', function( callback, args ){
+    //     plexApp.player({command: 'continue', devices: [args.device]})
+    //     callback( null, true );
+    // });
 
     callback();
 }
@@ -88,7 +88,7 @@ self.pair = function( socket ) {
                             deviceTemplate.data.hostname = hostname;
                             deviceTemplate.data.port = port;
                             deviceTemplate.data.id = player[identifierKey] + "|" + hostname + "|" + port;
-                            deviceTemplate.data.type = 'pht';
+                            deviceTemplate.data.type = 'pmp';
                             devices.push(deviceTemplate);        
                         })
                     }
@@ -289,7 +289,7 @@ self.isPlayerAvailable = function(plexPlayer){
 
         console.log("Connecting player: ", plexPlayer);
 
-        plexPlayer.query("/player/playback").then(function(result) {
+        plexPlayer.query("/player/timeline/unsubscribe").then(function(result) {
             
             console.log("plexPlayer query success", result);
 
@@ -319,6 +319,7 @@ self.process = function(options, callback, stop){
 
     var mediaItem = options.mediaItem || null;
     var command = options.command || null;
+    var server = options.server || null;
 
     if(!typeof callback == 'function'){
         callback = function(){};
@@ -361,7 +362,7 @@ self.process = function(options, callback, stop){
 
             function(){ // Available!
 
-                var controls = new self.controls(plexPlayer);
+                var controls = new self.controls(plexPlayer, server);
 
                 if(mediaItem && command == 'playItem'){
                     console.log('Play Item', mediaItem);
@@ -423,45 +424,59 @@ self.process = function(options, callback, stop){
     }
 }
 
-self.controls = function(player) {
+self.subscribePlayer = function(player){
+
+    var deferred = Q.defer();
+    var action = "/player/timeline/subscribe?protocol=http&address=0.0.0.0&port=0&commandID=subscribe";
+    
+    player.query(action).then(function(result) {
+            
+            console.log("PMP Player subscribe success", result);
+
+            return deferred.resolve(true);
+
+        }, function(err) {
+
+            console.log("PMP Player subscribe fail", err);
+
+            return deferred.reject(false);
+        
+    });
+
+    return deferred.promise;
+}
+
+self.controls = function(player, server) {
+
+    console.log("CONTROLS", player, server);
 
     var performer = function(action, item) {
 
         console.log("performer ", arguments);
 
         var prefix = "/player/playback/";
-        var payload = action;
-        var postfix = "";
-
-        switch (action) {
-            case 'play':
-
-                if (item) {
-                    postfix = "&machineIdentifier=" + item.machineIdentifier;
-                    payload = "playMedia?key=" + item.key;
-                }
-
-                break;
-
-            case 'setParameters':
-                postfix = "?" + item;
-                break;
-
-            case 'toggleOSD':
-                prefix = "/player/navigation/";
-                break;
-
-        }
+        var payload = (item) ? "playMedia" : action;
+        var itemKey = (item) ? item.key : "";
+        var postfix = "?commandID=" + payload + "&key=" + itemKey + "&offset=0&type=video&protocol=http&machineIdentifier=" + server.machineIdentifier + "&address="+ server.hostname + "&port=" + server.port;
 
         var perform = prefix + payload + postfix;
 
-        player.perform(perform).then(function(result) {
-            console.info(action)
-            Homey.manager('speech-output').say(__('play_item') + item.title);
-        }, function(err) {
-            console.log(err);
-            Homey.manager('speech-output').say(err);
-        });
+        console.log("-------------------- PERFORM ------------------", perform);
+
+
+        self.subscribePlayer(player).then(function(){
+
+           player.perform(perform).then(function(result) {
+                console.info(action)
+                Homey.manager('speech-output').say(__('play_item') + item.title);
+            }, function(err) {
+                console.log(err);
+                Homey.manager('speech-output').say(err);
+            });
+        }, function(){
+            Homey.manager('speech-output').say("Could not subscribe to player.");
+        })
+            
     }
 
     return {

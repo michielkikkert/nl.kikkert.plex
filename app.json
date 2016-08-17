@@ -75,6 +75,33 @@
             ]
         },
         {
+            "id": "pmp",
+            "name": {
+                "en": "Plex Media Player",
+                "nl": "Plex Media Player"
+            },
+            "images": {
+                "large": "drivers/pmp/assets/large.png",
+                "small": "drivers/pmp/assets/small.png"
+            },
+            "class": "plexplayer",
+            "capabilities": [ ],
+            "pair": [
+                {
+                  "id": "configure_players",
+                  "template" : "list_devices",
+                  "navigation": {
+                        "next": "add_players"
+                    }
+                },
+                
+                {
+                  "id": "add_players",
+                  "template": "add_devices"
+                }
+            ]
+        },
+        {
             "id": "chromecast",
             "name": {
                 "en": "ChromeCast",
@@ -105,16 +132,43 @@
     "flow": {
         "triggers": [
             {
-                "id" : "media_start",
+                "id" : "media_start_chromecast",
                 "title": { 
                     "en": "Plex starts playing"
-                }
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    }
+                ]
             },
             {
-               "id" : "media_stop",
+                "id" : "media_start_pht",
+                "title": { 
+                    "en": "Plex starts playing"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
+                    }
+                ]
+            },
+            {
+               "id" : "media_stop_chromecast",
                 "title": { 
                     "en": "Plex stops playing"
-                } 
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
+                    }
+                ]
             },
             {
                "id" : "media_pause",

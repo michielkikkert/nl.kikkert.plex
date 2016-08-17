@@ -430,7 +430,7 @@ self.getPlexPlayers = function(callback) {  // Used by Driver
 
     plexTv.query("/devices.xml").then(function(result) {
         callback(result.MediaContainer);
-        self.storePlayers(result.MediaContainer.Device);
+        // self.storePlayers(result.MediaContainer.Device);
     }, function() {
         console.log("Failed to get players from Plex.tv");
         realtime("Failed to get players from Plex.tv");
@@ -1948,11 +1948,11 @@ self.player = function(options){
     });
 
     if(options.command == "playItem" || options.command == "play"){
-        Homey.manager('flow').trigger('media_start');
+        Homey.manager('flow').trigger('media_start_' + driverKey);
     }
 
     if(options.command == "stop"){
-        Homey.manager('flow').trigger('media_stop');
+        Homey.manager('flow').trigger('media_stop_' + driverKey);
     }
 
     if(options.command == "pause"){

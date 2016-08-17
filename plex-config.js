@@ -2,8 +2,8 @@ var plexConfig = {
 
 	"supportedMediaTypes" 	: ['movie', 'episode'],
 	"remoteMode" 			: false,
-	"supportedPlayers" 		: ["Plex Home Theater"],
-	"installedDrivers" 		: ["pht", "chromecast"],
+	"supportedPlayers" 		: ["Plex Home Theater", "Plex Media Player"],
+	"installedDrivers" 		: ["pht", "chromecast", "pmp"],
 	"autoUpdateTime"		: 1800000,
 	"allowSharedServers"	: false,
 	"defaultPort"			: 32400,
