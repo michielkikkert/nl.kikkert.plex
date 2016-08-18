@@ -18,7 +18,7 @@
 	"playing_oldest_episode"			: "Okay, ik speel de oudste aflevering van ",
 	"playing_random_episode"			: "Okay, ik speel een willekeurige aflevering van ",
 	"sorry_failure"						: "Mijn excuses meester, ik heb u gefaald...",
-	"play_item"							: "Veel plezier met ",
+	"play_item"							: "spelen",
 	"device_not_found"					: "Sorry, I kon het apparaat niet vinden ",
 	"unknown_error"						: "Er heeft zicht een onbekend probleem voorgedaan",
 	"command_not_implemented"			: "Commando __command__ is niet geimplementeerd voor deze speler",
@@ -30,5 +30,8 @@
 	"series"							: "serie",
 	"multiple_results"					: "Ik heb __num__ resultaten gevonden voor __match__. Welke zou je willen kijken? ",
 	"not_enough_info"					: "Sorry, ik heb niet voldoende informatie om te vinden wat je wilt kijken. Begin opnieuw",
-	"what_type_watch"					: "Welke __type__ zou je willen kijken?"
+	"what_type_watch"					: "Welke __type__ zou je willen kijken?",
+	"continue_watching"					: "Verder kijken?",
+	"yes"								: "ja",
+	"no"								: "nee"		
 }

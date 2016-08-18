@@ -162,9 +162,12 @@ self.getLogs = function(callback){
 
 self.autoUpdate = function(){
 
-    clearTimeout(autoUpdateTimer);
+    // clearTimeout(autoUpdateTimer);
+
+    console.log("AUTO UPDATE MEDIA LIB SET AT", plexConfig.autoUpdateTime);
 
     autoUpdateTimer = setTimeout(function(){
+        console.log("------------ AUTO UPDATE RUNNING --------");
         updating = true;
         self.refreshMediaServer().then(function(){
             updating = false;
@@ -324,14 +327,7 @@ self.setPlexTvToken = function(token) {
 }
 
 self.storeServers = function(servers) {
-
-    // console.log("storeServers begin");
-    // console.log(servers);
-    // console.log(settings.servers);
-    // console.log("storeServers end");
-
     var oExisting = {};
-    
     var tempExistingServers = function(){
         
         settings.servers.forEach(function(existingServer){
@@ -358,50 +354,6 @@ self.storeServers = function(servers) {
 
     settings.servers = servers;
     store(settings);
-
-    // // First unregister media triggers
-    // Homey.manager('speech-input').removeTrigger(serverTriggerIds, function(err) {
-    //     if (!err) {
-    //         console.log("Unregistering server triggers done");
-    //     } else {
-    //         console.log(err);
-    //     }
-
-
-    //     for (var a = 0; a < serverObject.length; a++) {
-    //         var currentServer = serverObject[a].attributes;
-    //         var id = "server|" + a;
-    //         var triggers = [];
-
-    //         if (currentServer.owned == "1") {
-    //             triggers.push('switch to own server');
-    //         }
-
-    //         triggers.push("switch to " + currentServer.name);
-
-    //         var triggerObject = {
-    //             "id": id,
-    //             "importance": 0.6,
-    //             "triggers": {
-    //                 "en": triggers
-    //             }
-    //         }
-
-    //         console.log(triggerObject);
-
-    //         Homey.manager('speech-input').addTrigger(triggerObject, function(err, result) {
-    //             // console.log('args', arguments);
-    //             if (!err) {
-    //                 console.log("Registering server trigger done");
-    //                 serverTriggerIds.push(id);
-    //             } else {
-    //                 console.log(err);
-    //             }
-    //         });
-
-    //     }
-
-    // })
 
 }
 
@@ -715,21 +667,6 @@ self.cacheMediaByType = function(type) {
                 }
             }
 
-            // result._children.forEach(function(mediaItem) {
-            //     if (mediaItem._elementType == 'Video') {
-            //         var cacheItem = self.createMediaCacheItem(mediaItem);
-            //         mediaCache.items.push(cacheItem);
-
-            //         self.addToIndexer(type, cacheItem);
-
-            //         if (typeof mediaItem.viewCount == 'undefined') {
-            //             self.addToIndexer('neverwatched', cacheItem);
-            //         }
-
-            //         self.registerMediaTrigger(cacheItem);
-            //     }
-            // });
-
             return deferred.resolve();
 
         }, function(err) {
@@ -947,6 +884,7 @@ self.createMediaCacheItem = function(mediaChild) {
         "score": 0,
         "compoundEpisodeIndex": 0,
         "viewOffset": mediaChild.viewOffset || null,
+        "duration": mediaChild.duration || null,
         "verboseSearchTitle" : false
     };
 
@@ -1929,16 +1867,56 @@ self.filterMediaItemsBy = function(key, value, selection) {
 
 self.player = function(options){
 
+    console.log("self.player ---------> ", options);
+
     options.allServers = settings.servers;
     options.server = settings.selected.server;
     options.serverToken = settings.selected.server.token;
     var driverKey = options.devices[0].type;
+    var processing = false;
 
-    Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
-        if(response.message){
-            Homey.manager('speech-output').say(response.message);
+    // Ridiculous amount of duplication here. Need to refactor, but works for now.
+    if(options.command === "playItem" && options.mediaItem){
+
+        options.mediaItem.startFromOffset = false;
+
+        // determine offset (if any)
+        if(options.mediaItem.viewOffset && options.mediaItem.duration){
+            // Determine if not too close to start or too close to end
+            if((options.mediaItem.duration - options.mediaItem.viewOffset > 300000) && (options.mediaItem.viewOffset > 180000)){
+                
+                processing = true;
+                
+                Homey.manager( 'speech-input' ).confirm(__('continue_watching'), function(err, confirmed){
+                    
+                    console.log("------------ CONFIRM ANSWER -----------", confirmed);
+
+                    if(confirmed){
+                        options.mediaItem.startFromOffset = true;
+                    }
+
+                    console.log("START FROM OFFSET", options.mediaItem.startFromOffset);
+
+                    Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
+                        if(response.message){
+                            Homey.manager('speech-output').say(response.message);
+                        }
+                        processing = false;
+                    });
+                })
+            }
         }
-    });
+    }
+
+    if(!processing){
+        Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
+            if(response.message){
+                Homey.manager('speech-output').say(response.message);
+            } else {
+                Homey.manager('speech-output').say("Jo!");
+            }
+        });
+    }
 
     if(options.command == "playItem" || options.command == "play"){
         Homey.manager('flow').trigger('media_start');

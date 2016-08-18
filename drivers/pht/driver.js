@@ -439,7 +439,8 @@ self.controls = function(player) {
             case 'play':
 
                 if (item) {
-                    postfix = "&machineIdentifier=" + item.machineIdentifier;
+                    var offset = (item.startFromOffset) ? item.viewOffset : 0
+                    postfix = "&machineIdentifier=" + item.machineIdentifier + "&offset=" + offset;
                     payload = "playMedia?key=" + item.key;
                 }
 
@@ -457,9 +458,11 @@ self.controls = function(player) {
 
         var perform = prefix + payload + postfix;
 
+        console.log("-------- PERFORM -----------", perform);
+
         player.perform(perform).then(function(result) {
             console.info(action)
-            Homey.manager('speech-output').say(__('play_item') + item.title);
+            Homey.manager('speech-output').say(__('play_item', {"title": item.title}));
         }, function(err) {
             console.log(err);
             Homey.manager('speech-output').say(err);

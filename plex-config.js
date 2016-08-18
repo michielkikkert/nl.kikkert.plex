@@ -4,7 +4,7 @@ var plexConfig = {
 	"remoteMode" 			: false,
 	"supportedPlayers" 		: ["Plex Home Theater", "Plex Media Player"],
 	"installedDrivers" 		: ["pht", "chromecast", "pmp"],
-	"autoUpdateTime"		: 1800000,
+	"autoUpdateTime"		: 300000,
 	"allowSharedServers"	: false,
 	"defaultPort"			: 32400,
 	"maxPinTries"			: 20,

@@ -450,7 +450,7 @@ self.subscribePlayer = function(player){
 
 self.controls = function(player, server) {
 
-    console.log("CONTROLS", player, server);
+    // console.log("CONTROLS", player, server);
 
     var performer = function(action, item) {
 
@@ -459,15 +459,25 @@ self.controls = function(player, server) {
         var prefix = "/player/playback/";
         var payload = (item) ? "playMedia" : action;
         var itemKey = (item) ? item.key : "";
-        var postfix = "?commandID=" + payload + "&key=" + itemKey + "&offset=0&type=video&protocol=http&machineIdentifier=" + server.machineIdentifier + "&address="+ server.hostname + "&port=" + server.port;
+        var offset = 0;
+
+        if(item){
+            if(item.startFromOffset){
+                offset = item.viewOffset;
+            }
+        }
+
+        var postfix = "?commandID=" + payload + "&key=" + itemKey + "&offset=" + offset + "&type=video&protocol=http&machineIdentifier=" + server.machineIdentifier + "&address="+ server.hostname + "&port=" + server.port;
 
         var perform = prefix + payload + postfix;
+
+        console.log("-------- PERFORM ---------", perform);
 
         self.subscribePlayer(player).then(function(){
 
            player.perform(perform).then(function(result) {
                 console.info(action)
-                Homey.manager('speech-output').say(__('play_item') + item.title);
+                Homey.manager('speech-output').say(__('play_item', {"title": item.title}));
             }, function(err) {
                 console.log(err);
                 Homey.manager('speech-output').say(err);

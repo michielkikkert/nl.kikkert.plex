@@ -99,7 +99,7 @@ self.process = function(options, callback, stop){
              if(mediaItem && command == 'playItem'){
                 device.play(buildPlexUrl(options), 0, function(){
                     lastSession = mediaItem;
-                    Homey.manager('speech-output').say(__('play_item') + mediaItem.title);
+                    Homey.manager('speech-output').say(__('play_item', {"title": mediaItem.title}));
                     device.getStatus(function(err, status){
                         console.log("STATUS:",err, status);
                     });
@@ -188,11 +188,12 @@ function buildPlexUrl(options){
     }
 
     var url = "";
+    var offset = (options.mediaItem.startFromOffset) ? options.mediaItem.viewOffset : 0
     url += "http://";
     url += localServerAndPort;
     url += "/video/:/transcode/universal/start?";
     url += "path=" + encodeURIComponent("http://" + options.server.hostname + ":" + options.server.port + options.mediaItem.key);
-    url += "&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&subtitles=burn&copyts=1&Accept-Language=en&X-Plex-Chunked=1&X-Plex-Product=Plex%20Web&X-Plex-Version=2.6.1&X-Plex-Client-Identifier=ChromeCastMike&X-Plex-Platform=Chrome&X-Plex-Platform-Version=50.0&X-Plex-Device=OSX&X-Plex-Device-Name=Plex%20Web%20%28Chrome%29";
+    url += "&mediaIndex=0&partIndex=0&protocol=http&offset=" + offset + "&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&subtitles=burn&copyts=1&Accept-Language=en&X-Plex-Chunked=1&X-Plex-Product=Plex%20Web&X-Plex-Version=2.6.1&X-Plex-Client-Identifier=ChromeCastMike&X-Plex-Platform=Chrome&X-Plex-Platform-Version=50.0&X-Plex-Device=OSX&X-Plex-Device-Name=Plex%20Web%20%28Chrome%29";
     url += "&X-Plex-Token=" + options.serverToken; 
 
     console.log("buildPlexUrl", url);

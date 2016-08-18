@@ -18,7 +18,7 @@
 	"playing_oldest_episode"			: "Okay, playing the oldest episode of ",
 	"playing_random_episode"			: "Okay, playing a random episode of ",
 	"sorry_failure"						: "Sorry master, I have failed you.",
-	"play_item"							: "Enjoy watching ",
+	"play_item"							: "Enjoy __title__",
 	"device_not_found"					: "Sorry, I couldn't find device ",
 	"unknown_error"						: "An unknown error occurred",
 	"command_not_implemented"			: "command __command__ not implemented for this player",
@@ -30,5 +30,8 @@
 	"series"							: "series",
 	"multiple_results"					: "I found __num__ matching results for __match__. Which would you like to watch? ",
 	"not_enough_info"					: "Sorry, I do not have enough information to find what you want to watch. Please try again",
-	"what_type_watch"					: "What __type__ would you like to watch?"								
+	"what_type_watch"					: "What __type__ would you like to watch?",
+	"continue_watching"					: "Continue watching?",
+	"yes"								: "yes",
+	"no"								: "no"								
 }

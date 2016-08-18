@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Plex",
@@ -456,7 +456,8 @@
                     "random"
                 ],
                 "nl": [
-                    "willekeurige"
+                    "willekeurige",
+                    "willekeurig"
                 ]
             }
         },
@@ -470,7 +471,8 @@
                 ],
                 "nl": [
                     "media verversen",
-                    "ververs media"
+                    "ververs media",
+                    "media updaten"
                 ]
             }
         },
@@ -554,12 +556,17 @@
             "triggers": {
                 "en": [
                     "what is currently playing",
-                    "what am I currently watching"
+                    "what am I currently watching",
+                    "what am I watching",
+                    "what is playing"
                 ],
                 "nl": [
                     "woar kiek ik noar",
                     "waar kijk ik naar",
-                    "wat speelt er nu"
+                    "wat speelt er nu",
+                    "welke film is dit",
+                    "welke serie is dit",
+                    "welke aflevering is dit"
                 ]
             }
         },
