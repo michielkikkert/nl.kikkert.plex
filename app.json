@@ -132,43 +132,16 @@
     "flow": {
         "triggers": [
             {
-                "id" : "media_start_chromecast",
+                "id" : "media_start",
                 "title": { 
                     "en": "Plex starts playing"
-                },
-                "args": [
-                    {
-                        "name": "device",
-                        "type": "device",
-                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
-                    }
-                ]
+                }
             },
             {
-                "id" : "media_start_pht",
-                "title": { 
-                    "en": "Plex starts playing"
-                },
-                "args": [
-                    {
-                        "name": "device",
-                        "type": "device",
-                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
-                    }
-                ]
-            },
-            {
-               "id" : "media_stop_chromecast",
+               "id" : "media_stop",
                 "title": { 
                     "en": "Plex stops playing"
-                },
-                "args": [
-                    {
-                        "name": "device",
-                        "type": "device",
-                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=chromecast"
-                    }
-                ]
+                }
             },
             {
                "id" : "media_pause",
@@ -312,6 +285,70 @@
                         "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pht"
                     }
                 ]
+            },
+            {
+                "id": "playitempmp",
+                "title": {
+                    "en": "Play Plex Media",
+                    "nl": "Speel Plex Media"
+                },
+                "fluidArgs": true,
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pmp"
+                    },
+                    {
+                        "name": "selected",
+                        "type": "autocomplete",
+                        "placeholder": {
+                            "en": "Find a media item"
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "stopplayingpmp",
+                "title": {
+                    "en": "Stop Plex",
+                    "nl": "Stop Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pmp"
+                    }
+                ]
+            },
+            {
+                "id": "pausepmp",
+                "title": {
+                    "en": "Pause Plex",
+                    "nl": "Pauzeer Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pmp"
+                    }
+                ]
+            },
+            {
+                "id": "continuepmp",
+                "title": {
+                    "en": "Continue Plex",
+                    "nl": "Continueer Plex"
+                },
+                "args": [
+                    {
+                        "name": "device",
+                        "type": "device",
+                        "filter": "driver_uri=homey:app:nl.kikkert.plex&driver_id=pmp"
+                    }
+                ]
             }
         ]
     },
@@ -375,8 +412,10 @@
                     "previous episodes"
                 ],
                 "nl": [
+                    "vorige aflevering",
                     "vorige aflevering kijken",
-                    "1 aflevering terug"
+                    "1 aflevering terug",
+                    "een aflevering terug"
                 ]
             }
         },

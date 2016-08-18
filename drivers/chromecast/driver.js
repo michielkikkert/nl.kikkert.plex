@@ -9,7 +9,9 @@ var lastSession = null;
 
 
 self.init = function(devices_data, callback) {
+    
     console.log('Chromecast driver init', devices_data);plexApp.realtime('Chromecast driver init', devices_data);
+    
     discoverChromecasts()
     installedPlayers = devices_data;
     
@@ -114,6 +116,7 @@ self.process = function(options, callback, stop){
                     setTimeout(function(){
                         device.close(function(){
                             console.log("Chromecast closed");
+                            lastSession = null;
                         });
                     }, 3000)
                 });

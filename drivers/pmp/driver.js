@@ -15,34 +15,36 @@ var self = {};
 var installedPlayers = [];
 
 self.init = function(devices_data, callback){
-	console.log("PHT Driver init");plexApp.realtime("PHT Driver init");
+	
+    console.log("PMP Driver init");plexApp.realtime("PMP Driver init");
     console.log("players installed", devices_data.length);
     console.log("players", devices_data);
+    
     installedPlayers = devices_data;
 
-    // Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
-    //     callback( null, plexApp.searchAutoComplete(args.query) ); 
-    // });
+    Homey.manager('flow').on('action.playitempmp.selected.autocomplete', function( callback, args ){
+        callback( null, plexApp.searchAutoComplete(args.query) ); 
+    });
 
-    // Homey.manager('flow').on('action.playitempht', function( callback, args ){
-    //     plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
-    //     callback( null, true );
-    // });
+    Homey.manager('flow').on('action.playitempmp', function( callback, args ){
+        plexApp.player({mediaItem: args.selected.mediaItem, command: 'playItem', devices: [args.device]})
+        callback( null, true );
+    });
 
-    // Homey.manager('flow').on('action.stopplayingpht', function( callback, args ){
-    //     plexApp.player({command: 'stop', devices: [args.device]})
-    //     callback( null, true );
-    // });
+    Homey.manager('flow').on('action.stopplayingpmp', function( callback, args ){
+        plexApp.player({command: 'stop', devices: [args.device]})
+        callback( null, true );
+    });
 
-    // Homey.manager('flow').on('action.pausepht', function( callback, args ){
-    //     plexApp.player({command: 'pause', devices: [args.device]})
-    //     callback( null, true );
-    // });
+    Homey.manager('flow').on('action.pausepmp', function( callback, args ){
+        plexApp.player({command: 'pause', devices: [args.device]})
+        callback( null, true );
+    });
 
-    // Homey.manager('flow').on('action.continuepht', function( callback, args ){
-    //     plexApp.player({command: 'continue', devices: [args.device]})
-    //     callback( null, true );
-    // });
+    Homey.manager('flow').on('action.continuepmp', function( callback, args ){
+        plexApp.player({command: 'continue', devices: [args.device]})
+        callback( null, true );
+    });
 
     callback();
 }
@@ -461,9 +463,6 @@ self.controls = function(player, server) {
 
         var perform = prefix + payload + postfix;
 
-        console.log("-------------------- PERFORM ------------------", perform);
-
-
         self.subscribePlayer(player).then(function(){
 
            player.perform(perform).then(function(result) {
@@ -473,6 +472,7 @@ self.controls = function(player, server) {
                 console.log(err);
                 Homey.manager('speech-output').say(err);
             });
+
         }, function(){
             Homey.manager('speech-output').say("Could not subscribe to player.");
         })
@@ -507,7 +507,8 @@ self.controls = function(player, server) {
 self.api = { // Api used to access driver methods from App.
 
     getInstalledPlayers: self.getInstalledPlayers,
-    process: self.process
+    process: self.process,
+    getLastSession: function(){return null;}
 }
 
 module.exports.pair = self.pair;

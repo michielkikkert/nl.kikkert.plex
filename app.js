@@ -1132,95 +1132,37 @@ self.processConversation = function(speechObject) {
 
         if (speechResults.commands.indexOf('currentlyplaying') > -1) {
             
-            console.log("currentlyplaying", speechResults);
+            self.getCurrentlyPlaying(speechResults.devices[0]).then(function(mediaItem){    
+                
+                var friendly = '';
 
-            // TODO:
-            // Move these driver specific tests to the drivers while exposing the logic in app.js (API)
-
-            if(speechResults.devices[0].type == 'pht'){
-                self.getSessions().then(function(current) {
-
-                    console.log("Active playing session found", current);
-
-                    var friendly = "";
-                    var mediaItem = self.createMediaCacheItem(current[0]);
-
-                    if (mediaItem.type == 'episode') {
-
-                        friendly = __('currently_watching_episode', {"title":mediaItem.title}) + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
-
-                    } else {
-
-                        friendly = __('currently_watching_movie') + mediaItem.title;
-
-                    }
-
-                    Homey.manager('speech-output').say(friendly);
-
-                    return;
-                });
-            } 
-
-            if(speechResults.devices[0].type == 'chromecast'){
-
-                console.log("chromecast last session");
-
-                var friendly = "";
-                var mediaItem = Homey.manager('drivers').getDriver('chromecast').api.getLastSession();
-
-                console.log("getLastSession", mediaItem);
-
-                if(mediaItem && mediaItem.title){
-                    if (mediaItem.type == 'episode') {
-                        friendly = __('currently_watching_episode', {"title":mediaItem.title}) + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
-                    } else {
-                        friendly = __('currently_watching_movie') + mediaItem.title;
-                    }
-                    Homey.manager('speech-output').say(friendly);
-                    return;
+                if (mediaItem.type == 'episode') {
+                    friendly = __('currently_watching_episode', {"title":mediaItem.title}) + mediaItem.episodeTitle + ", " + mediaItem.season + ", " + mediaItem.episodeIndex;
+                } else {
+                    friendly = __('currently_watching_movie') + mediaItem.title;
                 }
 
-            }
+                Homey.manager('speech-output').say(friendly);
+                return;
 
-            return true;
+            }, function(err){
+                console.log(err);
+                return;
+            })
+
+            return;
         }
 
-        // Main "I want to watch something" Logic
+        // First handle Next/Previous episode scenarios:
+        if (speechResults.commands.indexOf('watchnextepisode') > -1) {
 
-
-        if (speechResults.commands.indexOf('watch') > -1) {
-
-            // Okay, user wants to watch something.
-
-            var speechMedia = speechResults.media;
-            var speechMediaLength = speechMedia.length;
-
-            // First handle special commands:
-            if (speechResults.commands.indexOf('watchnextepisode') > -1) {
-
-                self.getSessions().then(function(current) {
-
-
-                    // console.log("Active playing session found", current);
-
-                    if (current.length == 0) {
-                        console.log("No active player session found");
-                        Homey.manager('speech-output').say(__('no_watch_sessions'));
-                        return;
-                    }
-
-                    var mediaItem = self.createMediaCacheItem(current[0]);
-
-
-                    console.log("mediaItem", mediaItem);
-
+            self.getCurrentlyPlaying(speechResults.devices[0]).then(
+                function(mediaItem){
                     if (mediaItem.type == 'episode') {
-
                         var currentEppie = mediaItem.compoundEpisodeIndex;
                         var currentTitle = mediaItem.title;
 
                         //TODO: handle end of season scenario 
-
                         var nextCompoundIndex = parseInt(currentEppie) + 1;
 
                         var results = indexers['episode'].search(currentTitle + " " + nextCompoundIndex);
@@ -1232,41 +1174,29 @@ self.processConversation = function(speechObject) {
                             Homey.manager('speech-output').say(__('no_next_found_for') + currentTitle);
                             return;
                         }
-
                     }
+                },
 
-                })
-            }
+                function(err){
+                    console.log(err);
+                    Homey.manager('speech-output').say(__('no_watch_sessions'));
+                }
+            )
 
-            if (speechResults.commands.indexOf('watchpreviousepisode') > -1) {
+            return;
+        }
 
-                console.log("COMMAND: watchpreviousepisode triggered!");
+        if (speechResults.commands.indexOf('watchpreviousepisode') > -1) {
 
-                self.getSessions().then(function(current) {
+            console.log("COMMAND: watchpreviousepisode triggered!");
 
-
-                    console.log("Active playing session found", current);
-
-                    if (current.length == 0) {
-                        console.log("No active player session found");
-                        Homey.manager('speech-output').say(__('no_watch_sessions'));
-                        return;
-                    }
-
-                    var mediaItem = self.createMediaCacheItem(current[0]);
-
-
-                    console.log("mediaItem", mediaItem);
-
+            self.getCurrentlyPlaying(speechResults.devices[0]).then(
+                
+                function(mediaItem){
                     if (mediaItem.type == 'episode') {
-
                         var currentEppie = mediaItem.compoundEpisodeIndex;
                         var currentTitle = mediaItem.title;
-
-                        //TODO: handle begin of season scenario 
-
                         var prevCompoundIndex = parseInt(currentEppie) - 1;
-
                         var results = indexers['episode'].search(currentTitle + " " + prevCompoundIndex);
 
                         if (results.length > 0) {
@@ -1276,14 +1206,25 @@ self.processConversation = function(speechObject) {
                             Homey.manager('speech-output').say(__('no_next_found_for') + currentTitle);
                             return;
                         }
-
                     }
+                },
 
-                }, function(err){
-                    console.log("ERROR: watchpreviousepisode", err);
-                })
-            }
+                function(err){
+                    console.log(err);
+                    Homey.manager('speech-output').say(__('no_watch_sessions'));
+                }
+            )
 
+            return;
+        }
+
+        // Main "I want to watch something" Logic
+        if (speechResults.commands.indexOf('watch') > -1) {
+
+            // Okay, user wants to watch something.
+
+            var speechMedia = speechResults.media;
+            var speechMediaLength = speechMedia.length;
 
             // First check the specific command cases
             if (speechMediaLength == 0) {
@@ -1299,7 +1240,6 @@ self.processConversation = function(speechObject) {
             }
 
             // Find out if we have a media item match:
-
             if (speechMediaLength == 1) { // One result - easy peasy.
                 var mediaItem = self.keyToMediaItem(speechMedia[0].ref);
 
@@ -1331,8 +1271,6 @@ self.processConversation = function(speechObject) {
 
                     // Convert found speech keys to actual media items:
                     var mediaItemSelection = self.indexToMediaArray(longestItems, mediaCache.items);
-
-                    // console.log("mediaItemSelection", mediaItemSelection);
 
                     // Break up items into series and movies:
                     var seriesMedia = self.filterMediaItemsBy("type", "episode", mediaItemSelection)
@@ -1401,19 +1339,12 @@ self.processConversation = function(speechObject) {
                             self.getSingleResult(remainingMedia, speechResults);
                             return;
 
-
                         }, function(err) {
-
                             console.log("Invalid response from askQuestion", err);
                             Homey.manager('speech-output').say(__('did_not_understand', {"error": err}));
-
                         })
 
                     } else {
-
-                        console.log("lastType", lastType);
-                        // console.log("moviesMedia", moviesMedia);
-                        // console.log("seriesMedia", seriesMedia);
 
                         if (lastType == 'movie') {
                             self.getSingleResult(moviesMedia, speechResults);
@@ -1451,8 +1382,7 @@ self.processConversation = function(speechObject) {
             // TODO: ask for title of type
 
             if (speechMediaLength == 0 && speechResults.types.length == 1) {
-                console.log("speech-output", "What " + speechResults.types[0] + " would you like to watch?");
-                // Homey.manager('speech-output').say(__('what_type_watch', {"type": speechResults.localtypes[0]})); // ask
+                
                 self.askQuestion(__('what_type_watch', {"type": speechResults.localtypes[0]}), false).then(function(result) {
                 
                     if(typeof indexers[speechResults.types[0]] !="undefined"){
@@ -1479,6 +1409,69 @@ self.processConversation = function(speechObject) {
         }
 
     }
+}
+
+self.getCurrentlyPlaying = function(device){
+
+    console.log("getCurrentlyPlaying", device);
+
+    var deferred = Q.defer();
+    var mediaItem = null;
+
+    // First check the driver
+    if(device && device.type && device.type !==''){
+        mediaItem = Homey.manager('drivers').getDriver(device.type).api.getLastSession();
+    } else {
+        deferred.reject('No device found');
+    }
+
+    if(mediaItem){
+        console.log("Found playing item in driver");
+        deferred.resolve(mediaItem);
+        return;
+    }
+
+    // No success from the driver, check PMS for sessions
+
+    var deviceId = device.clientIdentifier || null;
+
+    if(self.setPlexServer()){
+        plexServer.query("/status/sessions").then(function(sessions) {
+            var result = null;
+
+            //If no device ID, take the first session - no other choice
+            if(!deviceId && sessions.length > 0){
+                result = sessions._children[0];
+            } else { // If have a player ID to match, try and find it
+                sessions._children.forEach(function(session) {
+                    if(!result){
+                        session._children.forEach(function(item){
+                            if(item._elementType == 'Player'){
+                                if(item.machineIdentifier == deviceId){
+                                    result = session;
+                                }
+                            }
+                        })
+                    }
+                });
+            }
+
+            if(result){
+                // console.log("Found matching session in PMS", result);
+                deferred.resolve(self.createMediaCacheItem(result));
+            } else {
+                // console.log("Failed to find active session, reject");
+                deferred.reject('No active session found');
+            }
+
+        }, function(err){
+
+            deferred.reject(err);
+
+        });
+    }
+
+    return deferred.promise;
 }
 
 self.getSingleResult = function(selection, speechResults) {
@@ -1948,11 +1941,11 @@ self.player = function(options){
     });
 
     if(options.command == "playItem" || options.command == "play"){
-        Homey.manager('flow').trigger('media_start_' + driverKey);
+        Homey.manager('flow').trigger('media_start');
     }
 
     if(options.command == "stop"){
-        Homey.manager('flow').trigger('media_stop_' + driverKey);
+        Homey.manager('flow').trigger('media_stop');
     }
 
     if(options.command == "pause"){

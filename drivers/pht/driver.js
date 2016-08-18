@@ -15,9 +15,11 @@ var self = {};
 var installedPlayers = [];
 
 self.init = function(devices_data, callback){
-	console.log("PHT Driver init");plexApp.realtime("PHT Driver init");
+	
+    console.log("PHT Driver init");plexApp.realtime("PHT Driver init");
     console.log("players installed", devices_data.length);
     console.log("players", devices_data);
+    
     installedPlayers = devices_data;
 
     Homey.manager('flow').on('action.playitempht.selected.autocomplete', function( callback, args ){
@@ -492,7 +494,8 @@ self.controls = function(player) {
 self.api = { // Api used to access driver methods from App.
 
     getInstalledPlayers: self.getInstalledPlayers,
-    process: self.process
+    process: self.process,
+    getLastSession: function(){return null;}
 }
 
 module.exports.pair = self.pair;
