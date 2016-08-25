@@ -118,6 +118,34 @@
 			.media-meta-container h1 {
 				padding: 10px;
 			}
+			.playing-state-container {
+				margin-top: 20px;
+			}
+			.playing-state-container .state {
+				font-size: 14px;
+			    font-weight: bold;
+			    text-transform: uppercase;
+			    border: 1px solid #555;
+			    margin-bottom: 10px;
+			    margin-right: 10px;
+    			padding: 10px;
+			}
+			.playing-state-container.playing .state-playing,
+			.playing-state-container.paused .state-paused,
+			.playing-state-container.stopped .state-stopped,
+			.playing-state-container.idle .state-idle {
+				color: green;
+				border-color: green;
+			}
+			.state-meta-title {
+				font-size: 20px;
+				font-weight: bold;
+				border: 1px solid;
+				padding: 5px;
+				margin-top: 20px;
+				background-color: #aaa;
+				color: white;
+			}
 		</style>
 
 		<link rel="stylesheet" href="/manager/webserver/assets/font/fontawesome/fontawesome.css">
@@ -144,6 +172,11 @@
 			$scope.serverAvailable = false;
 			$scope.updatingMedia = false;
 			$scope.cpuwarns = 0;
+			$scope.notifier = {
+				state: 'idle',
+				meta: ''
+			};
+
 
 			Homey.get('plex', function(err, settings){
 		        if( err ) $scope.error = err;
@@ -165,6 +198,13 @@
 			Homey.on("media_update", function(data){
 				console.log("media_update event", data);
 				$scope.updatingMedia = data;
+				$scope.$apply();
+			})
+
+			Homey.on("notifier_update", function(data){
+				console.log("notifier_update event", data);
+				$scope.notifier.state = data.state;
+				$scope.notifier.meta = data.meta;
 				$scope.$apply();
 			})
 
@@ -299,6 +339,15 @@
 				Homey.api( 'POST', '/setDevice/', {type: 'server', device:serverCopy}, function( err, result ){
 				    console.log(result);
 				    $scope.checkServerAvailability();
+				});
+			}
+
+			$scope.setNotifierState = function(state){
+
+				console.log("setNotifierState", state)
+
+				Homey.api( 'POST', '/setNotifierState/', {"state": state}, function( err, result ){
+				    console.log("Setting notifier state done", result);
 				});
 			}
 
@@ -438,10 +487,25 @@
 			{{player.name}} ({{player.hostname}}:{{player.port}}) - Type: {{player.type}}
 		</div>
 		<br/><br/>
-		<!-- <pre>{{settings | json}}</pre> -->
-
-		<!-- <button ng-click="test()">test</button> -->
-		<!-- <button ng-click="getServers()">getServers</button> -->
+		<div ng-show="hasSetup">
+			<h1>Plex Notifier Enabled:</h1>
+			<b ng-show="settings.enableNotifier">YES</b>
+			<b ng-show="!settings.enableNotifier">NO</b>
+			&nbsp;&nbsp;
+		
+			<span ng-show="settings.enableNotifier"><button ng-click="setNotifierState(false)">Toggle</button></span>
+			<span ng-show="!settings.enableNotifier"><button ng-click="setNotifierState(true)">Toggle</button></span>
+			<br/><br/>
+			<hr />
+			<div ng-show="settings.enableNotifier" class="playing-state-container" ng-class="{playing: notifier.state == 'playing', paused:notifier.state == 'paused', stopped:notifier.state == 'stopped', idle: notifier.state == 'idle'}">
+				<span class="state state-playing">Playing</span>
+				<span class="state state-paused">Paused</span>
+				<span class="state state-stopped">Stopped</span>
+				<span class="state state-idle">Idle (or unknown)</span>
+				<div class="state-meta-title" ng-show="notifier.meta">{{notifier.meta}}</div>
+			</div>
+			<br /><br />
+		</div>
 		<button class="right" ng-click="resetSettings()"><i class="fa fa-ban" aria-hidden="true"></i>&nbsp;Reset settings</button>
 		
 		<br/><br/><br/><br/><br/><br/>

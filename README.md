@@ -8,6 +8,17 @@ This is the Plex Remote control app for the Homey device. There is still a lot t
 EN: Watch (I want to watch star trek);
 NL: Kijk / kijken (Ik wil star trek kijken)
 
+# Version 1.2.0
+
+- Continuation support! So if you want to watch a media item (using speech), the app now looks at the viewOffset. So if the offset is high enough (about 3 minutes into the movie), it will ask you if you would like to continue where you finished (answer 'no' or 'nee' to restart from the beginning).
+- FLOWS! As per request. The app is now capable of subscribing to PMS updates over a websocket. These flow triggers will also trigger when a play event is detected outside of Homey. This means you can now fairly easily make a flow that dims your lights as soon as you start a movie, even if you start that movie using your remote control. Still some caveats to take into account:
+	1) The logic does not keep track if WHAT item is playing. It just looks at a playing event coming from your (selected!) PMS. 
+	2) If you have multiple players in your house (in multiple rooms), it will NOT differentiate. So triggers will fire even if you start a movie in one room ('playing') but if you stop a movie in another room, it will also fire stop. No way to control what is what as the socket events do not give me enough details to determine which player is playing what. So it should work fine for a simple setup - but also if you only use one player at a time. Also, if you do have multiple players, and you want to start watching something on another player, make sure you stop playing on the first one (and not have it paused). Paused players will still continue to fire events.
+	3) Shared servers are a bitch. So if for example you have Homey set to your own PMS, but via your smart TV you start a movie from a shared server, the flow will not trigger. If however you change Homey to the shared server, flows WILL trigger, however, they will also trigger when the owner of the shared servers starts or stops a movie
+	4) PHT (Plex Home Theater) - is a bitch! It does not emit a stop event (and when it does, it can take up to 5 minutes). This might screw up your stop flows a bit. Even if I would take the time (a lot of time) - to code some kind of work-around for this issue, it would still give you a delay of around 15 seconds before I can safely fire the stop event.
+
+	This notification functionality is switched on by default, however, I can see scenarios that might cause the logic to get twisted (it is event based after all). In that case, you can disable or reset (by switching off and on) on the settings page. The settings page will also show you if things work as it should give you a live view of the playing state and what is playing.
+
 # Version 1.1.2
 
 - Added PMP Driver. Support for PMP (Plex Media Player). This player is only available for Plex-Pass holders and is still in beta. I can therefore not guarantee that it will keep working as releases of PMP progress. For now it's working fine.

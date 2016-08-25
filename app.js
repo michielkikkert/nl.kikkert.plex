@@ -1,12 +1,15 @@
 "use strict";
 
 require('longjohn');
-
 var Q = require('q');
 var PlexAPI = require("plex-api");
 var PlexAuth = require('plex-api-credentials');
 var lunr = require('lunr');
 var url = require('url');
+var WebSocketClient = require('websocket').client;
+var EventEmitter = require('events');
+var stateEmitter = new EventEmitter();
+
 var constants = require('./const');
 var mediaTypes = require('./mediaTypes');
 var plexConfig = require('./plex-config'); 
@@ -25,12 +28,22 @@ var activeProfile = 1;
 var pinTries = 0;
 var cpuwarns = 0;
 var logs = [];
+var reconnectTimer = null;
+var wsclient = null;
 
 var mediaCache = {
     updated: null,
     items: [],
     ondeck: [],
     recent: []
+};
+
+var plexStatus = {
+    from: '',
+    status: '',
+    session: '',
+    offset: 0,
+    key: ''
 };
 
 var defaultPlexSettings = {
@@ -52,7 +65,8 @@ var defaultPlexSettings = {
         "media" : null,
         "latestmovies" :[],
         "latestseries" :[],
-    }
+    },
+    "enableNotifier" : false
 }
 
 var settings = null;
@@ -87,6 +101,8 @@ Homey.on('cpuwarn', function(warning){
 
 self.init = function() {
 
+    console.log("---------- INIT ---------");
+
     if(reset){
         reset = false;
         self.resetSettings();
@@ -105,6 +121,7 @@ self.init = function() {
         media: {}
     }
 
+
     self.setPlexTv();
 
     if (!settings.selected.server.hostname || !settings.plexTv.token) {
@@ -113,6 +130,15 @@ self.init = function() {
         settings.hasSetup = true;
         self.setPlexServer();
     }
+
+    // enable listeners
+    stateEmitter.on('NotifierState', (data) => {
+        console.log('NotifierState', data);
+    })
+
+    stateEmitter.on('PlexSessionState', (data) => {
+        self.handlePlexStatus(data);
+    });
 
     if (settings.hasSetup) {
 
@@ -128,6 +154,12 @@ self.init = function() {
             });
 
             self.autoUpdate();
+
+            if(typeof settings.enableNotifier === "undefined"){
+                settings.enableNotifier = true;
+            }
+
+            self.enableNotifier(settings.enableNotifier);
 
         }, function() {
             console.log("Plex server is NOT available");realtime("Plex server is NOT available");
@@ -148,9 +180,7 @@ self.updateInstalledPlayers = function(callback){
             settings.installedPlayers.push(device);
         })
     })
-
     store(settings);
-
     callback(settings.installedPlayers);
 }
 
@@ -158,6 +188,135 @@ self.getLogs = function(callback){
     
     if(callback){callback(logs)}
     return logs;
+}
+
+self.setNotifierState = function(state){
+    console.log("setNotifierState", state);
+    settings.enableNotifier = state.state;
+    self.enableNotifier(settings.enableNotifier);
+    store(settings);
+}
+
+self.enableNotifier = function(enable){
+    
+    if(!enable) {
+        stateEmitter.emit('closeWebSocket');
+        return;
+    };
+
+    wsclient = new WebSocketClient();
+
+    wsclient.on('connectFailed', function(error) {
+        console.log('Connect Error: ' + error.toString());
+        stateEmitter.emit('NotifierState', "socket failed " + error);
+        // Attempt a reconnect:
+        reconnect();
+    });
+
+    wsclient.on('connect', function(connection) {
+        console.log('WebSocket Client Connected');
+        stateEmitter.emit('NotifierState', 'Connected');
+
+        // Connect error
+        connection.on('error', function(error) {
+            console.log("Connection Error: " + error.toString());
+            stateEmitter.emit('NotifierState', 'Connection Error');
+            reconnect();
+        });
+
+        //Connect close
+        connection.on('close', function() {
+            console.log('echo-protocol Connection Closed');
+            stateEmitter.emit('NotifierState', 'Connection Closed');
+            reconnect();
+        });
+
+        // Incoming message from plex media server
+        connection.on('message', function(message) {
+            if (message.type === 'utf8') {
+                try {
+                    var response = JSON.parse(message.utf8Data);
+                    if(typeof response._children[0] == "object"){
+                        if(response._children[0]._elementType == 'PlaySessionStateNotification'){
+                            stateEmitter.emit('PlexSessionState', {"from": "socket", "status":response._children[0].state, "session": response._children[0].sessionKey, "offset": response._children[0].viewOffset, "key": response._children[0].key});
+                        }
+                    }
+                } 
+                catch(e){
+                    console.error(e);
+                }
+                
+            }
+        });
+
+        stateEmitter.on('closeWebSocket', function(){
+            console.log('received socket close event');
+            connection.close();
+        })
+
+    });
+
+    function reconnect(){
+        //clear any timers
+        clearTimeout(reconnectTimer);
+
+        // Start a new timer and run self.
+        reconnectTimer = setTimeout(function(){
+            self.enableNotifier(settings.enableNotifier);
+        }, 10000)
+    }
+
+    wsclient.connect('ws://' + settings.selected.server.hostname + ':' + settings.selected.server.port + '/:/websockets/notifications?X-Plex-Token=' + settings.selected.server.token);
+}
+
+self.handlePlexStatus = function(newStatus){
+    console.log('handlePlexStatus', newStatus);
+
+    var processed = false;
+
+    // Ignore states that we can't do anything with, like 'buffering' and maybe others.
+    if(newStatus.status === 'buffering'){
+        return;  
+    }
+
+    // Candy for the settings page
+    var mediaItem = self.keyToMediaItem(newStatus.key);
+    var meta = (mediaItem) ? mediaItem.title : "";
+    Homey.manager('api').realtime('notifier_update', {state: newStatus.status, meta:meta}); 
+    
+
+    // Did the status update? If not, update the status object with the new status object (to update offset)
+    if(plexStatus.status === newStatus.status){
+        
+        // Attempt to get the offset from the previous state if it is not available
+        if(!newStatus.offset){
+            newStatus.offset = plexStatus.offset;
+        }
+        
+        // Set the current status
+        plexStatus = newStatus;
+
+        // Not a unique event so we will 
+        return;
+    }
+
+    // Unique event if we arrived here, set the status
+    self.setPlexStatus(newStatus);
+
+    // On a stop, attempt to update the viewOffset in the cache for this mediaItem
+    // this should improve the 'Continue watching' precision
+    if(newStatus.status == 'stopped' && newStatus.offset){
+        self.updateCachItem(newStatus.key, 'viewOffset',  newStatus.offset);
+    }
+
+    // Update current status
+    plexStatus = newStatus;
+
+}
+
+self.setPlexStatus = function(newStatus){
+    console.log(" ------------- setPlexStatus ------------", newStatus.status);
+    Homey.manager('flow').trigger('media_' + newStatus.status);
 }
 
 self.autoUpdate = function(){
@@ -454,6 +613,7 @@ self.setSelectedDevice = function(args) {
         self.updateMediaCache();
         if (settings.selected.server.hostname) {
             settings.hasSetup = true;
+            self.enableNotifier(settings.enableNotifier);
         } else {
             settings.hasSetup = false;
         }
@@ -644,30 +804,40 @@ self.cacheMediaByType = function(type) {
         }
 
         plexServer.query("/library/all?type=" + mediaTypes[type]).then(function(result) {
+            
             console.log("Found " + result._children.length + " media items of type: " + type);
             realtime("Found " + result._children.length + " media items of type: " + type);
             console.log("Adding " + type + " to cache.......");
             realtime("Adding " + type + " to cache.......");
             settings.meta.media[type] = result._children.length;
 
+            var children = result._children;
 
-            for(var i =0; i < result._children.length; i++){
-                var mediaItem = result._children[i];
-                if (mediaItem._elementType == 'Video') {
-                    var cacheItem = self.createMediaCacheItem(mediaItem);
-                    mediaCache.items.push(cacheItem);
+            for(var i =0; i < children.length; i++){
 
-                    self.addToIndexer(type, cacheItem);
+                var loopIndex = i;
 
-                    if (typeof mediaItem.viewCount == 'undefined') {
-                        self.addToIndexer('neverwatched', cacheItem);
+                process.nextTick(function(loopIndex){    
+                    var mediaItem = children[loopIndex];
+                    if (mediaItem._elementType == 'Video') {
+                        console.log(" -- Processing", mediaItem.type, mediaItem.title);
+                        var cacheItem = self.createMediaCacheItem(mediaItem);
+                        mediaCache.items.push(cacheItem);
+                        self.addToIndexer(type, cacheItem);
+
+                        if (typeof mediaItem.viewCount == 'undefined') {
+                            self.addToIndexer('neverwatched', cacheItem);
+                        }
+
+                        self.registerMediaTrigger(cacheItem);
                     }
 
-                    self.registerMediaTrigger(cacheItem);
-                }
-            }
+                    if(loopIndex == children.length -1){
+                        return deferred.resolve();
+                    }
 
-            return deferred.resolve();
+                }, loopIndex);    
+            }
 
         }, function(err) {
             console.log(err);
@@ -866,7 +1036,7 @@ self.unRegisterMediaTriggers = function(callback) {
 
 self.createMediaCacheItem = function(mediaChild) {
 
-    console.log("createMediaCacheItem", mediaChild.type, mediaChild.key); // DO NOT REMOVE THIS CONSOLE LINE!
+    // console.log("createMediaCacheItem", mediaChild.type, mediaChild.key); // DO NOT REMOVE THIS CONSOLE LINE!
 
     var cacheTemplate = {
         "machineIdentifier": settings.selected.server.machineIdentifier,
@@ -903,6 +1073,18 @@ self.createMediaCacheItem = function(mediaChild) {
     }
 
     return cacheTemplate;
+}
+
+self.updateCachItem = function(mediaKey, item, newValue){
+    var mediaItem = self.keyToMediaItem(mediaKey);
+
+    console.log('MediaCacheItem before update', mediaItem);
+
+    if(mediaItem){
+        mediaItem[item] = newValue;
+    }
+
+    console.log('MediaCacheItem after update', self.keyToMediaItem(mediaKey));
 }
 
 self.getMedia = function() {
@@ -1776,6 +1958,8 @@ self.keyToMediaItem = function(key) {
             return curItem;
         }
     }
+
+    return false;
 }
 
 self.getLongestItemsInSpeechMedia = function(speechMedia) {
@@ -1875,7 +2059,6 @@ self.player = function(options){
     var driverKey = options.devices[0].type;
     var processing = false;
 
-    // Ridiculous amount of duplication here. Need to refactor, but works for now.
     if(options.command === "playItem" && options.mediaItem){
 
         options.mediaItem.startFromOffset = false;
@@ -1895,13 +2078,14 @@ self.player = function(options){
                         options.mediaItem.startFromOffset = true;
                     }
 
-                    console.log("START FROM OFFSET", options.mediaItem.startFromOffset);
-
                     Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
                         if(response.message){
                             Homey.manager('speech-output').say(response.message);
                         }
                         processing = false;
+                        if(!response.error){
+                            handleState(options);
+                        }
                     });
                 })
             }
@@ -1912,26 +2096,33 @@ self.player = function(options){
         Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
             if(response.message){
                 Homey.manager('speech-output').say(response.message);
-            } else {
-                Homey.manager('speech-output').say("Jo!");
+            }
+            if(!response.error){
+                handleState(options);
             }
         });
     }
 
-    if(options.command == "playItem" || options.command == "play"){
-        Homey.manager('flow').trigger('media_start');
-    }
+    function handleState(options){
 
-    if(options.command == "stop"){
-        Homey.manager('flow').trigger('media_stop');
-    }
+        if(options.command == "playItem" || options.command == "play"){
+            // Homey.manager('flow').trigger('media_start');
+            stateEmitter.emit('PlexSessionState', {"from": "app", "status":"playing", "session": options.mediaItem.sessionKey, "offset": options.mediaItem.viewOffset, "key": options.mediaItem.key});
+        }
 
-    if(options.command == "pause"){
-        Homey.manager('flow').trigger('media_pause');
-    }
+        if(options.command == "stop"){
+            // Homey.manager('flow').trigger('media_stop');
+            stateEmitter.emit('PlexSessionState', {"from": "app", "status":"stopped", "session": false, "offset": false, "key": false});
+        }
 
-    if(options.command == "continue"){
-        Homey.manager('flow').trigger('media_continue');
+        if(options.command == "pause"){
+            // Homey.manager('flow').trigger('media_pause');
+            stateEmitter.emit('PlexSessionState', {"from": "app", "status":"paused", "session": false, "offset": false, "key": false});
+        }
+
+        if(options.command == "continue"){
+            stateEmitter.emit('PlexSessionState', {"from": "app", "status":"playing", "session": false, "offset": false, "key": false});
+        }
     }
 
 }
@@ -1953,7 +2144,8 @@ self.api = {
     player: self.player,
     getLogs: self.getLogs,
     isServerAvailable: self.isServerAvailable,
-    realtime: self.realtime
+    realtime: self.realtime,
+    setNotifierState: self.setNotifierState
 }
 
 module.exports = {

@@ -162,11 +162,25 @@ module.exports = [
         requires_authorizaton: false,
         
         fn: function( callback, args ){
-            console.log("Getting settings");
+            console.log("Setting selected device");
 
             var setSelectedDevice = Homey.app.api.setSelectedDevice;
             
             callback(null, setSelectedDevice(args.body));
+        }
+    },
+    {
+        description:    'Set notifier state',
+        method:         'POST',
+        path:           '/setNotifierState',
+        requires_authorizaton: false,
+        
+        fn: function( callback, args ){
+            console.log("Setting notifier state", args);
+
+            var setNotifierState = Homey.app.api.setNotifierState;
+            
+            callback(null, setNotifierState(args.body));
         }
     }
 ]

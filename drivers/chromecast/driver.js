@@ -89,6 +89,10 @@ self.process = function(options, callback, stop){
     var mediaItem = options.mediaItem || null;
     var command = options.command || null;
 
+    if(!typeof callback == 'function'){
+        callback = function(){};
+    }
+
     getDevice(options.devices[0].name, 
 
         function(device) {
@@ -103,6 +107,7 @@ self.process = function(options, callback, stop){
                     device.getStatus(function(err, status){
                         console.log("STATUS:",err, status);
                     });
+                    callback({error:false});
                 })
              }
 
@@ -119,6 +124,7 @@ self.process = function(options, callback, stop){
                             lastSession = null;
                         });
                     }, 3000)
+                    callback({error:false});
                 });
             }
 
@@ -129,6 +135,8 @@ self.process = function(options, callback, stop){
                     device.getStatus(function(err, status){
                         console.log("STATUS:",err, status);
                     });
+
+                    callback({error:false});
                 });
             }
 
@@ -139,6 +147,8 @@ self.process = function(options, callback, stop){
                     device.getStatus(function(err, status){
                         console.log("STATUS:",err, status);
                     });
+
+                    callback({error:false});
                 });
             }
         }, 

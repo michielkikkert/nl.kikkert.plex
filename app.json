@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Plex",
@@ -132,27 +132,21 @@
     "flow": {
         "triggers": [
             {
-                "id" : "media_start",
+                "id" : "media_playing",
                 "title": { 
                     "en": "Plex starts playing"
                 }
             },
             {
-               "id" : "media_stop",
+               "id" : "media_stopped",
                 "title": { 
                     "en": "Plex stops playing"
                 }
             },
             {
-               "id" : "media_pause",
+               "id" : "media_paused",
                 "title": { 
                     "en": "Plex pauses"
-                } 
-            },
-            {
-               "id" : "media_continue",
-                "title": { 
-                    "en": "Plex continues"
                 } 
             }
 
@@ -495,7 +489,8 @@
                     "pauzeer kijken",
                     "pauzeren kijken",
                     "kijken pauzeren",
-                    "film pauzeren"
+                    "film pauzeren",
+                    "film pauze"
                 ]
             }
         },

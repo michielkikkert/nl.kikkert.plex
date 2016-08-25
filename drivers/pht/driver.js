@@ -368,13 +368,14 @@ self.process = function(options, callback, stop){
                 if(mediaItem && command == 'playItem'){
                     console.log('Play Item', mediaItem);
                     controls.play(mediaItem);
-                    // callback(error: false, message: "Enjoy watching " + mediaItem)
+                    callback({error: false, message: "Enjoy watching " + mediaItem})
                     return;
                 }
 
                 if(command){
                     if(typeof controls[command] == 'function'){
                         controls[command]();
+                        callback({error: false});
                         return;    
                     } else {
                         callback({error: true, "message" : __('command_not_implemented', {"command":command})});
