@@ -257,13 +257,15 @@ self.enableNotifier = function(enable){
     });
 
     function reconnect(){
-        console.log("-- Attempting reconnect websockets");
+        
         //clear any timers
         clearTimeout(reconnectTimer);
 
         // Start a new timer and run self.
         reconnectTimer = setTimeout(function(){
-            console.log("Calling self.enableNotifier()");
+            if(settings.enableNotifier){
+                console.log("-- Attempting reconnect websockets");
+            }
             self.enableNotifier(settings.enableNotifier);
         }, 10000)
     }
@@ -272,9 +274,6 @@ self.enableNotifier = function(enable){
 }
 
 self.handlePlexStatus = function(newStatus){
-    // console.log('handlePlexStatus', newStatus);
-
-    var processed = false;
 
     // Ignore states that we can't do anything with, like 'buffering' and maybe others.
     if(newStatus.status === 'buffering'){
@@ -309,6 +308,14 @@ self.handlePlexStatus = function(newStatus){
     // this should improve the 'Continue watching' precision
     if(newStatus.status == 'stopped' && newStatus.offset){
         self.updateCachItem(newStatus.key, 'viewOffset',  newStatus.offset);
+    }
+
+    if(newStatus.status == 'stopped'){
+        setTimeout(function(){
+            if(plexStatus.status == 'stopped'){
+                self.handlePlexStatus({key:'', status:'idle', offset:false});
+            }
+        }, 10000)
     }
 
     // Update current status

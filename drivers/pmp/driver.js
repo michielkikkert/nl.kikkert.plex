@@ -478,7 +478,7 @@ self.controls = function(player, server) {
 
            player.perform(perform).then(function(result) {
                 console.info(action)
-                Homey.manager('speech-output').say(__('play_item', {"title": item.title}));
+                // Homey.manager('speech-output').say(__('play_item', {"title": item.title}));
             }, function(err) {
                 console.log(err);
                 Homey.manager('speech-output').say(err);
