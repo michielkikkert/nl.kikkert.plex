@@ -257,11 +257,13 @@ self.enableNotifier = function(enable){
     });
 
     function reconnect(){
+        console.log("-- Attempting reconnect websockets");
         //clear any timers
         clearTimeout(reconnectTimer);
 
         // Start a new timer and run self.
         reconnectTimer = setTimeout(function(){
+            console.log("Calling self.enableNotifier()");
             self.enableNotifier(settings.enableNotifier);
         }, 10000)
     }
@@ -270,7 +272,7 @@ self.enableNotifier = function(enable){
 }
 
 self.handlePlexStatus = function(newStatus){
-    console.log('handlePlexStatus', newStatus);
+    // console.log('handlePlexStatus', newStatus);
 
     var processed = false;
 
@@ -315,13 +317,12 @@ self.handlePlexStatus = function(newStatus){
 }
 
 self.setPlexStatus = function(newStatus){
-    console.log(" ------------- setPlexStatus ------------", newStatus.status);
+    console.log(" ------------- setPlexStatus ------------");
+    console.log(newStatus);
     Homey.manager('flow').trigger('media_' + newStatus.status);
 }
 
 self.autoUpdate = function(){
-
-    // clearTimeout(autoUpdateTimer);
 
     console.log("AUTO UPDATE MEDIA LIB SET AT", plexConfig.autoUpdateTime);
 
@@ -1077,14 +1078,9 @@ self.createMediaCacheItem = function(mediaChild) {
 
 self.updateCachItem = function(mediaKey, item, newValue){
     var mediaItem = self.keyToMediaItem(mediaKey);
-
-    console.log('MediaCacheItem before update', mediaItem);
-
     if(mediaItem){
         mediaItem[item] = newValue;
     }
-
-    console.log('MediaCacheItem after update', self.keyToMediaItem(mediaKey));
 }
 
 self.getMedia = function() {
@@ -2080,7 +2076,7 @@ self.player = function(options){
 
                     Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
                         if(response.message){
-                            Homey.manager('speech-output').say(response.message);
+                            // Homey.manager('speech-output').say(response.message);
                         }
                         processing = false;
                         if(!response.error){
@@ -2095,7 +2091,7 @@ self.player = function(options){
     if(!processing){
         Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
             if(response.message){
-                Homey.manager('speech-output').say(response.message);
+                // Homey.manager('speech-output').say(response.message);
             }
             if(!response.error){
                 handleState(options);

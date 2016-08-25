@@ -368,7 +368,7 @@ self.process = function(options, callback, stop){
                 if(mediaItem && command == 'playItem'){
                     console.log('Play Item', mediaItem);
                     controls.play(mediaItem);
-                    callback({error: false, message: "Enjoy watching " + mediaItem})
+                    callback({error: false, message: __('play_item', {"title": mediaItem.title})})
                     return;
                 }
 

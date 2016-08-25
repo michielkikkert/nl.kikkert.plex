@@ -103,11 +103,11 @@ self.process = function(options, callback, stop){
              if(mediaItem && command == 'playItem'){
                 device.play(buildPlexUrl(options), 0, function(){
                     lastSession = mediaItem;
-                    Homey.manager('speech-output').say(__('play_item', {"title": mediaItem.title}));
+                    // Homey.manager('speech-output').say(__('play_item', {"title": mediaItem.title}));
                     device.getStatus(function(err, status){
                         console.log("STATUS:",err, status);
                     });
-                    callback({error:false});
+                    callback({error:false, message: __('play_item', {"title": mediaItem.title})});
                 })
              }
 
