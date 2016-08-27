@@ -89,7 +89,7 @@ self.pair = function( socket ) {
                             deviceTemplate.data.token = device.attributes.token;
                             deviceTemplate.data.hostname = hostname;
                             deviceTemplate.data.port = port;
-                            deviceTemplate.data.id = player[identifierKey] + "|" + hostname + "|" + port;
+                            deviceTemplate.data.id = player[identifierKey];
                             deviceTemplate.data.type = 'pht';
                             devices.push(deviceTemplate);        
                         })

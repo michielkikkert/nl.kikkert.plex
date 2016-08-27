@@ -2082,8 +2082,8 @@ self.player = function(options){
                     }
 
                     Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
-                        if(response.message){
-                            // Homey.manager('speech-output').say(response.message);
+                        if(response.message && response.error){
+                            Homey.manager('speech-output').say(response.message);
                         }
                         processing = false;
                         if(!response.error){
@@ -2097,8 +2097,8 @@ self.player = function(options){
 
     if(!processing){
         Homey.manager('drivers').getDriver(driverKey).api.process(options, function(response){
-            if(response.message){
-                // Homey.manager('speech-output').say(response.message);
+            if(response.message && response.error){
+                Homey.manager('speech-output').say(response.message);
             }
             if(!response.error){
                 handleState(options);

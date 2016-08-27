@@ -23,7 +23,7 @@
 	"unknown_error"						: "Er heeft zicht een onbekend probleem voorgedaan",
 	"command_not_implemented"			: "Commando __command__ is niet geimplementeerd voor deze speler",
 	"could_not_connect_player"			: "Ik kon niet verbinden met je speler, ik probeer het nog een keer",
-	"is_player_running"					: "Sorry, draait je speler wel?",
+	"is_player_running"					: "Sorry, ik kan niet verbinden met je speler",
 
 	"movie_or_series"					: "Wil je een film of een serie kijken?",
 	"movie"								: "film",
