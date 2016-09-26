@@ -1,4 +1,4 @@
-# nl.kikkert.plex
+# nl.kikkert.plex (CAREFULL - THIS APP IS CURRENTLY BROKEN DUE TO THE 0.10.0 HOMEY RELEASE)
 
 This is the Plex Remote control app for the Homey device. It uses the Plex.tv PIN procedure to get the Plex server and player details.
 
@@ -7,6 +7,20 @@ This is the Plex Remote control app for the Homey device. It uses the Plex.tv PI
 
 EN: Watch (I want to watch star trek);
 NL: Kijk / kijken (Ik wil star trek kijken)
+
+
+# Buy me a beer!
+
+Are you enjoying the Plex App? There are hundreds of hours of work spend, and many beers drunk to create this app. Wanna buy me one? 
+
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="4YA937DNWPCLN">
+<input type="image" src="https://www.paypalobjects.com/nl_NL/NL/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal, de veilige en complete manier van online betalen.">
+<img alt="" border="0" src="https://www.paypalobjects.com/nl_NL/i/scr/pixel.gif" width="1" height="1">
+</form>
+
+Thanks!
 
 # Version 1.2.0
 

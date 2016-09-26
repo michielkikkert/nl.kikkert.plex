@@ -1066,12 +1066,14 @@ self.createMediaCacheItem = function(mediaChild) {
         "verboseSearchTitle" : false
     };
 
-    if (cacheTemplate.title.indexOf(':') > 1) {
-        cacheTemplate.primaryTitle = cacheTemplate.title.split(':')[0].trim();
-        cacheTemplate.secondaryTitle = cacheTemplate.title.split(':')[1].trim();
-        cacheTemplate.title = cacheTemplate.title.replace(": ", " ");
-    } else {
-        cacheTemplate.primaryTitle = cacheTemplate.title;
+    if(cacheTemplate.title){
+        if (cacheTemplate.title.indexOf(':') > 1) {
+            cacheTemplate.primaryTitle = cacheTemplate.title.split(':')[0].trim();
+            cacheTemplate.secondaryTitle = cacheTemplate.title.split(':')[1].trim();
+            cacheTemplate.title = cacheTemplate.title.replace(": ", " ");
+        } else {
+            cacheTemplate.primaryTitle = cacheTemplate.title;
+        }
     }
 
 
