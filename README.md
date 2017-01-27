@@ -18,6 +18,10 @@ Are you enjoying the Plex App? There are hundreds of hours of work spend, and ma
 
 Thanks!
 
+# Version 1.2.1
+
+Apparently, Athom decided to change the speechObject interface. Therefore the app could no longer read a value from this Object an crashed hard. This has now been fixed.
+
 # Version 1.2.0
 
 - Continuation support! So if you want to watch a media item (using speech), the app now looks at the viewOffset. So if the offset is high enough (about 3 minutes into the movie), it will ask you if you would like to continue where you finished (answer 'no' or 'nee' to restart from the beginning).

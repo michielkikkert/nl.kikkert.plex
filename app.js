@@ -283,6 +283,7 @@ self.handlePlexStatus = function(newStatus){
     // Candy for the settings page
     var mediaItem = self.keyToMediaItem(newStatus.key);
     var meta = (mediaItem) ? mediaItem.title : "";
+    console.log("Firing realtime notifier_update to front-end", {state: newStatus.status, meta:meta});
     Homey.manager('api').realtime('notifier_update', {state: newStatus.status, meta:meta}); 
     
 
@@ -1161,12 +1162,10 @@ self.processConversation = function(speechObject) {
         localtypes: [],
         media: [],
         server: [],
-        zones: speechObject.zones,
         transcript: speechObject.transcript,
         devices: speechObject.devices
     };
 
-    var zone = (speechResults.zones.length > 0) ? speechResults.zones[0] : 'default'; // Not used yet.
     var device = (speechResults.devices.length > 0) ? speechResults.devices[0] : null; 
 
     if(speechResults.devices.length == 0){
@@ -1605,7 +1604,6 @@ self.getSingleResult = function(selection, speechResults) {
 
     console.log("GOING TO getSingleResult() with number of items", selection.length);
 
-    var zone = (speechResults.zones.length > 0) ? speechResults.zones[0] : 'default';
     
     var longSpeechMediaResults = self.getLongestItemsInSpeechMedia(speechResults.media);
     var speechMatch = longSpeechMediaResults[0].match;

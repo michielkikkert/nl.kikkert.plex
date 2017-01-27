@@ -1,6 +1,6 @@
 {
     "id": "nl.kikkert.plex",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "compatibility": "0.x || 1.x",
     "name": {
         "en": "Plex",
