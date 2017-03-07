@@ -4,3 +4,16 @@
 *.sql
 *.sqlite
 .DS_Store
+.idea/dictionaries/MichielPro.xml
+
+.idea/inspectionProfiles/Project_Default.xml
+
+.idea/misc.xml
+
+.idea/modules.xml
+
+.idea/nl.kikkert.plex.homey.iml
+
+.idea/vcs.xml
+
+.idea/workspace.xml

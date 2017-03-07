@@ -9,14 +9,20 @@ EN: Watch (I want to watch star trek);
 NL: Kijk / kijken (Ik wil star trek kijken)
 
 
-# Buy me a beer!
+# contributors wanted!
 
-Are you enjoying the Plex App? There are hundreds of hours of work spend, and many beers drunk to create this app. Wanna buy me one? 
+Due to a severe lack of time, I'm no longer able to maintain this project on a regular basis. Even though I'll try to find as much time as I can to make updates, I'm not always capable of responding quickly.
+Therefore, I'm looking for javascripters that can join me on this project. Your name will be included in the contributors section on the Athom App Store.
+This is a nice and challenging project with plenty of room for improvements and also a great way to learn more about NodeJS, Speech logic and PMS.
+So do you fit the below profile?
 
-[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4YA937DNWPCLN)
+    * Medior/senior Javascripter
+    * Familier with (or user of) Plex Media Server
+    * Some available free time
+    * Owns a Homey of course!
 
+If you are interested, please feel free to drop me a line at michiel @ kikkert . nl
 
-Thanks!
 
 # Version 1.2.1
 
