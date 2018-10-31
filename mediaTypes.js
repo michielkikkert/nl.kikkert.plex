@@ -1,4 +1,4 @@
-var mediaTypes = { 
+const mediaTypes = { 
 	"movie": 1,
 	"episode": 4,
 	"track": 10,
