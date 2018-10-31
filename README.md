@@ -1,3 +1,7 @@
+# NO LONGET UPDATED > THIS IS A DEAD PROJECT
+
+
+
 # nl.kikkert.plex
 
 This is the Plex Remote control app for the Homey device. It uses the Plex.tv PIN procedure to get the Plex server and player details.
