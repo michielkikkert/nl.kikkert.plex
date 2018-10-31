@@ -4,6 +4,7 @@
 *.sql
 *.sqlite
 .DS_Store
+node_modules
 .idea/dictionaries/MichielPro.xml
 
 .idea/inspectionProfiles/Project_Default.xml
