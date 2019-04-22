@@ -1221,19 +1221,6 @@ self.processConversation = function(speechObject) {
 
     console.log("speechResults", speechResults);
 
-    // Server selection by Speech disabled for now. 
-    // Shared server support can be build in, however, some features like active sessions won't work with remote servers so need to do some more tests for that.
-    
-    // if (speechResults.server.length > 0) {   
-    //     var selectedServerObject = settings.servers[parseInt(speechResults.server)];
-    //     self.setSelectedDevice({
-    //         "type": "server",
-    //         "device": selectedServerObject
-    //     });
-    //     Homey.manager('speech-output').say("Media server set to " + selectedServerObject.attributes.name);
-    //     return;
-    // }
-
     if (speechResults.commands.length > 0) {
 
         // Test for commands:
